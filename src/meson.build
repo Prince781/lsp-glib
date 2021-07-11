@@ -79,7 +79,7 @@ if get_option('enable_valadoc')
       valadoc,
       '-o', meson.current_build_dir() / 'Lsp-' + API_VERSION,
       '--doclet',
-      'html',
+      'devhelp',
       '@INPUT@',
       '--pkg', 'glib-2.0',
       '--pkg', 'gobject-2.0',
