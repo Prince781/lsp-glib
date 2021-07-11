@@ -1,0 +1,6 @@
+namespace Lsp {
+    /**
+     * The version of LSP-GLib
+     */
+    const string VERSION = "@VCS_TAG@";
+}
