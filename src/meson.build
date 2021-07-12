@@ -7,6 +7,7 @@ conf.set('API_VERSION', API_VERSION)
 
 sources = [version_file] + files([
   'io/client.vala',
+  'io/editor.vala',
   'io/server.vala',
   'types/clientcapabilities.vala',
   'types/command.vala',
