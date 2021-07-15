@@ -212,13 +212,15 @@ namespace Lsp {
         }
     }
 
-    /**
-     * Text documents are identified using a URI. On the protocol level, URIs
-     * are passed as strings.
+    /** 
+     * Contains a text document's URI and the version (optionally).
      */
     public struct TextDocumentIdentifier {
         /**
          * The text document's URI.
+         *
+         * Text documents are identified using a URI. On the protocol level,
+         * URIs are passed as strings.
          */
         public Uri uri { get; set; }
 
@@ -324,14 +326,14 @@ namespace Lsp {
      */
     public class TextDocumentPositionParams {
         /**
-         * The text document.
-         */
-        public TextDocumentIdentifier text_document { get; set; }
-
-        /**
          * The position inside the text document.
          */
         public Position position { get; set; }
+
+        /**
+         * The text document.
+         */
+        public TextDocumentIdentifier text_document { get; set; }
 
         public TextDocumentPositionParams (TextDocumentIdentifier text_document, Position position) {
             this.text_document = text_document;
@@ -367,7 +369,7 @@ namespace Lsp {
      * omitted the new text is considered to be the full content of the
      * document.
      */
-    public struct TextDocumentContentChangeEvent {
+    public class TextDocumentContentChangeEvent {
         /**
          * The range of the document that changed.
          */
@@ -386,7 +388,7 @@ namespace Lsp {
 
         public TextDocumentContentChangeEvent.from_variant (Variant dict) throws DeserializeError {
             Variant? prop = null;
-            if ((prop = lookup_property (dict, "range", VariantType.DICTIONARY, typeof (TextDocumentContentChangeEvent).name ())) != null)
+            if ((prop = lookup_property (dict, "range", VariantType.VARDICT, typeof (TextDocumentContentChangeEvent).name ())) != null)
                 range = Range.from_variant (prop);
             text = (string) expect_property (dict, "text", VariantType.STRING, typeof (TextDocumentContentChangeEvent).name ());
         }

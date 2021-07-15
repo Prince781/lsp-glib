@@ -22,22 +22,47 @@ namespace Lsp {
     /**
      * A textual edit applicable to a text document.
      */
+    [Compact]
     public class TextEdit {
         /**
          * The range of the text document to be manipulated. To insert text
          * into a document create a range where start === end.
          */
-        public Range range { get; set; }
+        public Range range;
 
         /**
          * The string to be inserted. For delete operations use an empty
          * string.
          */
-        public string new_text { get; set; }
+        public string new_text;
 
-        public TextEdit (Range range, string new_text) {
+        /**
+         * An identifier referring to a change annotation managed by a workspace
+         * edit.
+         *
+         * Usually clients provide options to group the changes along the
+         * annotations they are associated with. To support this in the protocol an
+         * edit or resource operation refers to a change annotation using an
+         * identifier and not the change annotation literal directly. This allows
+         * servers to use the identical annotation across multiple edits or
+         * resource operations which then allows clients to group the operations
+         * under that change annotation. The actual change annotations together
+         * with their identifers are managed by the workspace edit via the new
+         * property changeAnnotations.
+         *
+         * Support for this is guarded by the client capability
+         * `workspace.workspaceEdit.changeAnnotationSupport`. If a client doesn’t
+         * signal the capability, servers shouldn’t send this back to the client
+         * and should leave this set to `null`.
+         *
+         * @since 3.16.0
+         */
+        public string? annotation_id;
+
+        public TextEdit (Range range, string new_text, string? annotation_id = null) {
             this.range = range;
             this.new_text = new_text;
+            this.annotation_id = null;
         }
     }
 
@@ -46,60 +71,30 @@ namespace Lsp {
      *
      * @since 3.16.0
      */
+    [Compact]
     public class ChangeAnnotation {
         /**
          * A human-readable string describing the actual change. The string is
          * rendered prominent in the user interface.
          */
-        public string label { get; set; }
+        public string label;
 
         /**
          * A flag which indicates that user confirmation is needed before
          * applying the change.
          */
-        public bool needs_confirmation { get; set; }
+        public bool needs_confirmation;
 
         /**
          * A human-readable string which is rendered less prominent in the user
          * interface.
          */
-        public string? description { get; set; }
+        public string? description;
 
-        public ChangeAnnotation (string label) {
+        public ChangeAnnotation (string label, bool needs_confirmation = false, string? description = null) {
             this.label = label;
-        }
-    }
-
-    /**
-     * An identifier referring to a change annotation managed by a workspace
-     * edit.
-     *
-     * Usually clients provide options to group the changes along the
-     * annotations they are associated with. To support this in the protocol an
-     * edit or resource operation refers to a change annotation using an
-     * identifier and not the change annotation literal directly. This allows
-     * servers to use the identical annotation across multiple edits or
-     * resource operations which then allows clients to group the operations
-     * under that change annotation. The actual change annotations together
-     * with their identifers are managed by the workspace edit via the new
-     * property changeAnnotations.
-     *
-     * Support for this is guarded by the client capability
-     * `workspace.workspaceEdit.changeAnnotationSupport`. If a client doesn’t
-     * signal the capability, servers shouldn’t send this back to the client
-     * and should send {@link TextEdit} instead.
-     *
-     * @since 3.16.0
-     */
-    public class AnnotatedTextEdit : TextEdit {
-        /**
-         * The actual annotation identifier.
-         */
-        public string annotation_id { get; set; }
-
-        public AnnotatedTextEdit (Range range, string new_text, string annotation_id) {
-            base (range, new_text);
-            this.annotation_id = annotation_id;
+            this.needs_confirmation = needs_confirmation;
+            this.description = description;
         }
     }
 
@@ -118,22 +113,30 @@ namespace Lsp {
         /**
          * The text document to change. This may be a versioned {@link TextDocumentIdentifier}
          */
-        public TextDocumentIdentifier text_document { get; private set; }
+        public TextDocumentIdentifier text_document { get; set; }
+
+        private TextEdit[] _edits;
 
         /**
          * The edits to be applied.
          *
-         * Support for AnnotatedTextEdit is guarded by the client capability
+         * Support for annotated text edits is guarded by the client capability
          * `workspace.workspaceEdit.changeAnnotationSupport`
          */
-        public Array<TextEdit> edits { get; private set; }
+        public TextEdit[] edits {
+            get { return _edits; }
+            owned set {
+                for (var i = 0; i < value.length; i++)
+                    _edits += (owned)value[i];
+            }
+        }
 
-        public TextDocumentEdit (TextDocumentIdentifier text_document, params TextEdit[] edits) {
+        public TextDocumentEdit (TextDocumentIdentifier text_document, TextEdit[] edits) {
             this.text_document = text_document;
-            this.edits = new Array<TextEdit> ();
+            this._edits = {};
 
-            foreach (var edit in edits)
-                this.edits.append_val (edit);
+            for (var i = 0; i < edits.length; i++)
+                this._edits += (owned)edits[i];
         }
     }
 }

@@ -6,13 +6,12 @@ dependencies = [
   dependency('glib-2.0', version: '>= 2.66'),
   dependency('gobject-2.0'),
   dependency('gio-2.0'),
-  dependency('json-glib-1.0', version: '>= 1.4.4'),
   dependency('jsonrpc-glib-1.0', version: '>= 3.28')
 ]
 
 pkgconfig = import('pkgconfig')
 
-PKGCONFIG_DEPS = ['glib-2.0', 'gobject-2.0', 'gio-2.0', 'json-glib-1.0']
+PKGCONFIG_DEPS = ['glib-2.0', 'gobject-2.0', 'gio-2.0', 'jsonrpc-glib-1.0']
 API_VERSION = '3.0'
 vapidir = get_option('datadir') / 'vala' / 'vapi'
 

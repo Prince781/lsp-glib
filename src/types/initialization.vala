@@ -24,14 +24,21 @@ namespace Lsp {
      *
      * @since 3.15.0
      */
-    [Compact]
     public class ClientInfo {
-        public string name;
-        public string? version;
+        public string name { get; set; }
+        public string? version { get; set; }
 
         public ClientInfo (string name, string? version = null) {
             this.name = name;
             this.version = version;
+        }
+
+        public Variant to_variant () {
+            var dict = new VariantDict ();
+            dict.insert_value ("name", name);
+            if (version != null)
+                dict.insert_value ("version", version);
+            return dict.end ();
         }
     }
 
@@ -60,12 +67,12 @@ namespace Lsp {
          */
         Uri root_uri;
 
-        public ClientInfo? client_info { get; owned set; }
+        public ClientInfo? client_info { get; set; }
 
-        public WorkspaceFolder[] workspaces { get; private set; }
+        public WorkspaceFolder[] workspaces { get; set; }
 
         public InitializeParams (WorkspaceFolder primary_workspace,
-                                 params WorkspaceFolder[] secondary_workspaces) throws ConvertError {
+                                 WorkspaceFolder[]? secondary_workspaces = null) throws ConvertError {
             WorkspaceFolder[] temp_workspaces = {};
 
             root_uri = primary_workspace.uri;
@@ -75,7 +82,7 @@ namespace Lsp {
             root_path = Filename.from_uri (root_uri_string, null);
 
             temp_workspaces += primary_workspace;
-            foreach (var secondary_workspace in secondary_workspaces)
+            foreach (unowned var secondary_workspace in secondary_workspaces)
                 temp_workspaces += secondary_workspace;
             workspaces = temp_workspaces;
         }
@@ -116,6 +123,22 @@ namespace Lsp {
 
             workspaces = temp_workspaces;
         }
+
+        public Variant to_variant () {
+            var dict = new VariantDict ();
+
+            dict.insert_value ("processId", process_id);
+            dict.insert_value ("rootPath", root_path);
+            dict.insert_value ("rootUri", uri_to_string (root_uri));
+            if (client_info != null)
+                dict.insert_value ("clientInfo", client_info.to_variant ());
+            Variant[] workspaces_list = {};
+            foreach (unowned var workspace in workspaces)
+                workspaces_list += workspace.to_variant ();
+            dict.insert_value ("workspaceFolders", new Variant.array (VariantType.VARDICT, workspaces_list));
+
+            return dict.end ();
+        }
     }
 
     /**
@@ -123,10 +146,9 @@ namespace Lsp {
      *
      * @since 3.15.0
      */
-    [Compact]
     public class ServerInfo {
-        public string name;
-        public string? version;
+        public string name { get; set; }
+        public string? version { get; set; }
 
         public ServerInfo (string name, string? version = null) {
             this.name = name;
@@ -152,12 +174,17 @@ namespace Lsp {
         /**
          * The capabilities the language server provides.
          */
-        public ServerCaps capabilities { get; owned set; }
+        public ServerCaps capabilities { get; set; }
 
-        public ServerInfo? server_info { get; owned set; }
+        public ServerInfo? server_info { get; set; }
 
         public InitializeResult (ServerCaps capabilities) {
             this.capabilities = capabilities;
+        }
+
+        public InitializeResult.from_variant (Variant variant) throws DeserializeError {
+            capabilities = new ServerCaps.from_variant (
+                expect_property (variant, "capabilities", VariantType.VARDICT, typeof (InitializeResult).name ()));
         }
 
         public Variant to_variant () {

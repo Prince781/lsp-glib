@@ -33,7 +33,7 @@ namespace Lsp {
          * valid inside an identifier (for example `.` in JavaScript) list them in
          * `triggerCharacters`.
          */
-        public string[]? triggers;
+        public string[]? triggers { get; set; }
 
         /**
          * The list of all possible characters that commit a completion. This field
@@ -46,17 +46,30 @@ namespace Lsp {
          *
          * @since 3.2.0
          */
-        public string[]? commit_triggers;
+        public string[]? commit_triggers { get; set; }
 
         /**
          * The server provides support to resolve additional information for a
          * completion item.
          */
-        public bool supports_resolve;
+        public bool supports_resolve { get; set; }
 
-        public CompletionOptions (bool supports_resolve, params string[]? triggers) {
+        public CompletionOptions (bool supports_resolve, string[]? triggers = null) {
             this.supports_resolve = supports_resolve;
             this.triggers = triggers;
+        }
+
+        public CompletionOptions.from_variant (Variant variant) throws DeserializeError {
+            Variant? prop = null;
+
+            if ((prop = lookup_property (variant, "triggerCharacters", VariantType.STRING_ARRAY, typeof (CompletionOptions).name ())) != null)
+                triggers = (string[]) prop;
+
+            if ((prop = lookup_property (variant, "allCommitCharacters", VariantType.STRING_ARRAY, typeof (CompletionOptions).name ())) != null)
+                commit_triggers = (string[]) prop;
+
+            if ((prop = lookup_property (variant, "resolveProvider", VariantType.BOOLEAN, typeof (CompletionOptions).name ())) != null)
+                supports_resolve = (bool) prop;
         }
 
         public Variant to_variant () {
@@ -76,7 +89,7 @@ namespace Lsp {
         /**
          * The characters that trigger signature help automatically.
          */
-        public string[]? triggers;
+        public string[]? triggers { get; set; }
 
         /**
          * List of characters that re-trigger signature help.
@@ -87,10 +100,20 @@ namespace Lsp {
          *
          * @since 3.15.0
          */
-        public string[]? retriggers;
+        public string[]? retriggers { get; set; }
 
-        public SignatureHelpOptions (params string[]? triggers) {
+        public SignatureHelpOptions (string[]? triggers = null) {
             this.triggers = triggers;
+        }
+
+        public SignatureHelpOptions.from_variant (Variant variant) throws DeserializeError {
+            Variant? prop = null;
+
+            if ((prop = lookup_property (variant, "triggerCharacters", VariantType.STRING_ARRAY, typeof (SignatureHelpOptions).name ())) != null)
+                triggers = (string[]) prop;
+
+            if ((prop = lookup_property (variant, "retriggerCharacters", VariantType.STRING_ARRAY, typeof (SignatureHelpOptions).name ())) != null)
+                retriggers = (string[]) prop;
         }
 
         public Variant to_variant () {
@@ -109,7 +132,18 @@ namespace Lsp {
         /**
          * Code lens has a resolve provider as well.
          */
-        public bool supports_resolve;
+        public bool supports_resolve { get; set; }
+
+        public CodeLensOptions (bool supports_resolve) {
+            this.supports_resolve = supports_resolve;
+        }
+
+        public CodeLensOptions.from_variant (Variant variant) throws DeserializeError {
+            Variant? prop = null;
+
+            if ((prop = lookup_property (variant, "resolveProvider", VariantType.BOOLEAN, typeof (CodeLensOptions).name ())) != null)
+                supports_resolve = (bool) prop;
+        }
 
         public Variant to_variant () {
             var dict = new VariantDict ();
@@ -124,10 +158,17 @@ namespace Lsp {
         /**
          * Document links have a resolve provider as well.
          */
-        public bool supports_resolve;
+        public bool supports_resolve { get; set; }
 
         public DocumentLinkOptions (bool supports_resolve) {
             this.supports_resolve = supports_resolve;
+        }
+
+        public DocumentLinkOptions.from_variant (Variant variant) throws DeserializeError {
+            Variant? prop = null;
+
+            if ((prop = lookup_property (variant, "resolveProvider", VariantType.BOOLEAN, typeof (DocumentLinkOptions).name ())) != null)
+                supports_resolve = (bool) prop;
         }
 
         public Variant to_variant () {
@@ -144,10 +185,17 @@ namespace Lsp {
          * The server supports renames being checked and tested before being
          * executed.
          */
-        public bool supports_prepare;
+        public bool supports_prepare { get; set; }
 
         public RenameOptions (bool supports_prepare) {
             this.supports_prepare = supports_prepare;
+        }
+
+        public RenameOptions.from_variant (Variant variant) throws DeserializeError {
+            Variant? prop = null;
+
+            if ((prop = lookup_property (variant, "prepareProvider", VariantType.BOOLEAN, typeof (RenameOptions).name ())) != null)
+                supports_prepare = (bool) prop;
         }
 
         public Variant to_variant () {
@@ -166,7 +214,7 @@ namespace Lsp {
         /**
          * Defines how text documents are synced.
          */
-        public TextDocumentSyncKind text_document_sync;
+        public TextDocumentSyncKind text_document_sync { get; set; }
 
         /**
          * The server provides completion support.
@@ -176,7 +224,7 @@ namespace Lsp {
         /**
          * The server provides hover support.
          */
-        public bool hover;
+        public bool hover { get; set; }
 
         /**
          * The server provides signature help support.
@@ -186,42 +234,42 @@ namespace Lsp {
         /**
          * The server provides goto-declaration support.
          */
-        public bool declaration;
+        public bool declaration { get; set; }
 
         /**
          * The server provides goto-definition support.
          */
-        public bool definition;
+        public bool definition { get; set; }
 
         /**
          * The server provides goto-type-definition support.
          */
-        public bool type_definition;
+        public bool type_definition { get; set; }
 
         /**
          * The server provides goto-implementation support.
          */
-        public bool implementation;
+        public bool implementation { get; set; }
 
         /**
          * The server provides find references support.
          */
-        public bool references;
+        public bool references { get; set; }
 
         /**
          * The server provides document highlight support.
          */
-        public bool document_highlight;
+        public bool document_highlight { get; set; }
 
         /**
          * The server provides document symbol support.
          */
-        public bool document_symbol;
+        public bool document_symbol { get; set; }
 
         /**
          * The server provides code actions.
          */
-        public bool code_action;
+        public bool code_action { get; set; }
 
         /**
          * The server provides code lens.
@@ -241,7 +289,59 @@ namespace Lsp {
         /**
          * The server provides workspace symbol support.
          */
-        public bool workspace_symbol;
+        public bool workspace_symbol { get; set; }
+
+        public ServerCaps.from_variant (Variant variant) throws DeserializeError {
+            Variant? prop = null;
+
+            text_document_sync = (TextDocumentSyncKind) expect_property (variant, "textDocumentSync", VariantType.INT64, typeof (ServerCaps).name ());
+
+            if ((prop = lookup_property (variant, "completionProvider", VariantType.VARDICT, typeof (ServerCaps).name ())) != null)
+                completion = new CompletionOptions.from_variant (prop);
+
+            if ((prop = lookup_property (variant, "hoverProvider", VariantType.BOOLEAN, typeof (ServerCaps).name ())) != null)
+                hover = (bool) prop;
+
+            if ((prop = lookup_property (variant, "signatureHelpProvider", VariantType.VARDICT, typeof (ServerCaps).name ())) != null)
+                signature_help = new SignatureHelpOptions.from_variant (prop);
+
+            if ((prop = lookup_property (variant, "declarationProvider", VariantType.BOOLEAN, typeof (ServerCaps).name ())) != null)
+                declaration = (bool) prop;
+
+            if ((prop = lookup_property (variant, "definitionProvider", VariantType.BOOLEAN, typeof (ServerCaps).name ())) != null)
+                definition = (bool) prop;
+
+            if ((prop = lookup_property (variant, "typeDefinitionProvider", VariantType.BOOLEAN, typeof (ServerCaps).name ())) != null)
+                type_definition = (bool) prop;
+
+            if ((prop = lookup_property (variant, "implementationProvider", VariantType.BOOLEAN, typeof (ServerCaps).name ())) != null)
+                implementation = (bool) prop;
+
+            if ((prop = lookup_property (variant, "referencesProvider", VariantType.BOOLEAN, typeof (ServerCaps).name ())) != null)
+                references = (bool) prop;
+
+            if ((prop = lookup_property (variant, "documentHighlightProvider", VariantType.BOOLEAN, typeof (ServerCaps).name ())) != null)
+                document_highlight = (bool) prop;
+
+            if ((prop = lookup_property (variant, "documentSymbolProvider", VariantType.BOOLEAN, typeof (ServerCaps).name ())) != null)
+                document_symbol = (bool) prop;
+
+            if ((prop = lookup_property (variant, "codeActionProvider", VariantType.BOOLEAN, typeof (ServerCaps).name ())) != null)
+                code_action = (bool) prop;
+
+            if ((prop = lookup_property (variant, "codeLensProvider", VariantType.VARDICT, typeof (ServerCaps).name ())) != null)
+                code_lens = new CodeLensOptions.from_variant (prop);
+
+            if ((prop = lookup_property (variant, "documentLinkProvider", VariantType.VARDICT, typeof (ServerCaps).name ())) != null)
+                document_link = new DocumentLinkOptions.from_variant (prop);
+
+            if ((prop = lookup_property (variant, "renameProvider", VariantType.VARDICT, typeof (ServerCaps).name ())) != null)
+                rename = new RenameOptions.from_variant (prop);
+
+            if ((prop = lookup_property (variant, "workspaceSymbolProvider", VariantType.BOOLEAN, typeof (ServerCaps).name ())) != null)
+                workspace_symbol = (bool) prop;
+        }
+        
 
         public Variant to_variant () {
             var dict = new VariantDict ();

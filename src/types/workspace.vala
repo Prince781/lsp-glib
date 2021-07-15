@@ -35,5 +35,12 @@ namespace Lsp {
             this.uri = uri;
             this.name = name;
         }
+
+        public Variant to_variant () {
+            var dict = new VariantDict ();
+            dict.insert_value ("uri", uri_to_string (uri));
+            dict.insert_value ("name", name);
+            return dict.end ();
+        }
     }
 }

@@ -42,7 +42,7 @@ namespace Lsp {
         /**
          * The resource to create.
          */
-        public Uri uri;
+        public Uri uri { get; set; }
 
         [Flags]
         public enum Options {
@@ -50,18 +50,18 @@ namespace Lsp {
             OVERWRITE
         }
 
-        public Options options;
+        public Options options { get; set; }
 
-        public string? annotation_id;
+        public string? annotation_id { get; set; }
     }
 
     /**
      * Rename file operation
      */
     public class RenameFile : ResourceOperation {
-        public Uri old_uri;
+        public Uri old_uri { get; set; }
 
-        public Uri new_uri;
+        public Uri new_uri { get; set; }
 
         [Flags]
         public enum Options {
@@ -69,16 +69,16 @@ namespace Lsp {
             OVERWRITE
         }
 
-        public Options options;
+        public Options options { get; set; }
 
-        public string? annotation_id;
+        public string? annotation_id { get; set; }
     }
 
     /**
      * Delete file operation
      */
     public class DeleteFile : ResourceOperation {
-        public Uri uri;
+        public Uri uri { get; set; }
 
         [Flags]
         public enum Options {
@@ -87,9 +87,9 @@ namespace Lsp {
             IGNORE_IF_NOT_EXISTS
         }
 
-        public Options options;
+        public Options options { get; set; }
 
-        public string? annotation_id;
+        public string? annotation_id { get; set; }
     }
 
     /**
@@ -106,7 +106,7 @@ namespace Lsp {
 
         /**
          * A map of change annotations that can be referenced in
-         * {@link AnnotatedTextEdit}s or create, rename and delete file / folder
+         * annotated {@link TextEdit}s or create, rename and delete file / folder
          * operations.
          *
          * Each key is the change annotation identifier.

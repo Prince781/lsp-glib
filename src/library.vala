@@ -22,7 +22,7 @@ namespace Lsp {
     /**
      * Convenience function to convert a URI to a string.
      */
-    public static string uri_to_string (Uri uri) {
+    public string uri_to_string (Uri uri) {
         return Uri.join (UriFlags.NONE,
                          uri.get_scheme (),
                          uri.get_userinfo (),
@@ -33,13 +33,28 @@ namespace Lsp {
                          uri.get_fragment ());
     }
 
+    public uint uri_hash (Uri uri) {
+        return uri_to_string (uri).hash ();
+    }
+
+    public bool uri_equal (Uri a, Uri b) {
+        return a.get_auth_params () == b.get_auth_params () &&
+            a.get_fragment () == b.get_fragment () &&
+            a.get_query () == b.get_query () &&
+            a.get_path () == b.get_path () &&
+            a.get_port () == b.get_port () &&
+            a.get_host () == b.get_host () &&
+            a.get_scheme () == b.get_scheme () &&
+            a.get_userinfo () == b.get_userinfo ();
+    }
+
     /**
      * Expect a property on a variant.
      */
-    public static Variant expect_property (Variant dict, string property_name,
-                                           VariantType expected_type,
-                                           string parent_type_name) throws DeserializeError {
-        if (!dict.is_of_type (VariantType.DICTIONARY))
+    Variant expect_property (Variant dict, string property_name,
+                             VariantType expected_type,
+                             string parent_type_name) throws DeserializeError {
+        if (!dict.is_of_type (VariantType.VARDICT))
             throw new DeserializeError.INVALID_TYPE ("expected dictionary for %s", parent_type_name);
         var prop = dict.lookup_value (property_name, expected_type);
         if (prop == null)
@@ -47,10 +62,10 @@ namespace Lsp {
         return prop;
     }
 
-    public static Variant? lookup_property (Variant dict, string property_name,
-                                            VariantType expected_type,
-                                            string parent_type_name) throws DeserializeError {
-        if (!dict.is_of_type (VariantType.DICTIONARY))
+    Variant? lookup_property (Variant dict, string property_name,
+                              VariantType expected_type,
+                              string parent_type_name) throws DeserializeError {
+        if (!dict.is_of_type (VariantType.VARDICT))
             throw new DeserializeError.INVALID_TYPE ("expected dictionary for %s", parent_type_name);
         return dict.lookup_value (property_name, expected_type);
     }

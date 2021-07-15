@@ -172,7 +172,7 @@ namespace Lsp {
          * must be a prefix of the edit's replace range, that means it must be
          * contained and starting at the same position.
          */
-        public TextEdit? text_edit { get; set; }
+        public TextEdit? text_edit { get; owned set; }
 
         /**
          * An optional array of additional text edits that are applied when
@@ -183,7 +183,7 @@ namespace Lsp {
          * current cursor position (for example adding an import statement at the
          * top of the file if the completion item will insert an unqualified type).
          */
-        public Array<TextEdit>? additional_text_edits { get; set; }
+        public TextEdit[]? additional_text_edits { get; owned set; }
 
         /**
          * An optional set of characters that when pressed while this completion is

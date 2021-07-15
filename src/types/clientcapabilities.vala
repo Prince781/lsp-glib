@@ -86,11 +86,11 @@ namespace Lsp {
      * 
      * @see WorkspaceEditClientCaps.resource_ops
      */
-    public struct WorkspaceEditClientCaps {
+    public class WorkspaceEditClientCaps {
         /**
          * The client supports versioned document changes in {@link WorkspaceEdit}s
          */
-        public bool document_changes;
+        public bool document_changes { get; set; }
 
         /**
          * The resource operations the client supports. Clients should at least
@@ -101,7 +101,7 @@ namespace Lsp {
          * @see ResourceOperationKind
          * @since 3.13.0
          */
-        public string[]? resource_ops;
+        public string[]? resource_ops { get; set; }
 
         /**
          * The failure handling strategy of a client if applying the workspace
@@ -109,7 +109,7 @@ namespace Lsp {
          *
          * @since 3.13.0
          */
-        public FailureHandlingKind failure_handling;
+        public FailureHandlingKind failure_handling { get; set; }
 
         /**
          * Whether the client normalizes line endings to the client specific
@@ -120,32 +120,32 @@ namespace Lsp {
          *
          * @since 3.16.0
          */
-        public bool normalizes_line_endings;
+        public bool normalizes_line_endings { get; set; }
 
         /**
          * Whether the client supports change annotations.
          *
          * @since 3.16.0
          */
-        public bool change_annotations;
+        public bool change_annotations { get; set; }
 
         /**
          * Whether the client groups edits with equal labels into tree nodes,
          * for instance all edits labelled with "Changes in Strings" would be a
          * tree node.
          */
-        public bool change_annotations_group_on_label;
+        public bool change_annotations_group_on_label { get; set; }
     }
 
     /**
      * Workspace-specific client capabilities.
      */
-    public struct WorkspaceClientCaps {
+    public class WorkspaceClientCaps {
         /**
          * The client supports applying batch edits to the workspace by
          * supporting the request 'workspace/applyEdit'
          */
-        public bool apply_edit;
+        public bool apply_edit { get; set; }
     }
 
     /**
@@ -160,12 +160,12 @@ namespace Lsp {
          * of the snippet. Placeholders with equal identifiers are linked, that
          * is typing in one will update others too.
          */
-        public bool snippets;
+        public bool snippets { get; set; }
 
         /**
          * Client supports commit characters on a completion item.
          */
-        public bool commit_chars;
+        public bool commit_chars { get; set; }
 
         /**
          * Client supports the following content formats for the documentation
@@ -176,12 +176,12 @@ namespace Lsp {
         /**
          * Client supports the deprecated property on a completion item.
          */
-        public bool deprecated_property;
+        public bool deprecated_property { get; set; }
 
         /**
          * Client supports the preselect property on a completion item.
          */
-        public bool preselect_property;
+        public bool preselect_property { get; set; }
 
         /**
          * Client supports the tag property on a completion item. Clients
@@ -191,7 +191,7 @@ namespace Lsp {
          *
          * @since 3.15.0
          */
-        public CompletionItemTag supported_tags;
+        public CompletionItemTag supported_tags { get; set; }
 
         /**
          * Client supports insert replace edit to control different behavior if
@@ -199,7 +199,7 @@ namespace Lsp {
 		 *
          * @since 3.16.0
          */
-        public bool insert_replace;
+        public bool insert_replace { get; set; }
 
         /**
          * Indicates which properties a client can resolve lazily on a
@@ -235,7 +235,7 @@ namespace Lsp {
          * The client supports to send additional context information for a
          * `textDocument/completion` request.
          */
-        public bool context;
+        public bool context { get; set; }
 
     }
 
@@ -264,10 +264,10 @@ namespace Lsp {
     /**
      * Text document-specific client capabilities.
      */
-    public struct TextDocumentClientCaps {
-        public TextDocumentSyncClientCaps synchronization;
+    public class TextDocumentClientCaps {
+        public TextDocumentSyncClientCaps synchronization { get; set; }
 
-        public CompletionClientCaps completion;
+        public CompletionClientCaps completion { get; set; }
     }
 
     /**
@@ -277,11 +277,11 @@ namespace Lsp {
         /**
          * Workspace-specific client capabilities.
          */
-        public WorkspaceClientCaps workspace;
+        public WorkspaceClientCaps workspace { get; set; }
 
         /**
          * Text document-specific client capabilities.
          */
-        public TextDocumentClientCaps text_document;
+        public TextDocumentClientCaps text_document { get; set; }
     }
 }

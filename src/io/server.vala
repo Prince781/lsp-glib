@@ -67,29 +67,29 @@ public abstract class Lsp.Server : Jsonrpc.Server {
                     break;
 
                 case "textDocument/didChange":
-                    var tdi_variant = expect_property (parameters, "textDocument", VariantType.DICTIONARY, "DidChangeTextDocumentParams");
+                    var tdi_variant = expect_property (parameters, "textDocument", VariantType.VARDICT, "DidChangeTextDocumentParams");
                     var cc_variant = expect_property (parameters, "contentChanges", VariantType.ARRAY, "DidChangeTextDocumentParams");
                     var content_changes = new TextDocumentContentChangeEvent[] {};
                     foreach (var cc in cc_variant) {
                         if (cc == null)
                             throw new DeserializeError.INVALID_TYPE ("expected non-null content changes for DidChangeTextDocumentParams");
-                        content_changes += TextDocumentContentChangeEvent.from_variant (cc);
+                        content_changes += new TextDocumentContentChangeEvent.from_variant (cc);
                     }
                     yield text_document_did_change_async (lsp_client, TextDocumentIdentifier.from_variant (tdi_variant), content_changes);
                     break;
 
                 case "textDocument/didClose":
-                    var tdi_variant = expect_property (parameters, "textDocument", VariantType.DICTIONARY, "DidCloseTextDocumentParams");
+                    var tdi_variant = expect_property (parameters, "textDocument", VariantType.VARDICT, "DidCloseTextDocumentParams");
                     yield text_document_did_close_async (lsp_client, TextDocumentIdentifier.from_variant (tdi_variant));
                     break;
 
                 case "textDocument/didOpen":
-                    var tdi_variant = expect_property (parameters, "textDocument", VariantType.DICTIONARY, "DidOpenTextDocumentParams");
+                    var tdi_variant = expect_property (parameters, "textDocument", VariantType.VARDICT, "DidOpenTextDocumentParams");
                     yield text_document_did_open_async (lsp_client, new TextDocumentItem.from_variant (tdi_variant));
                     break;
                 
                 case "textDocument/didSave":
-                    var tdi_variant = expect_property (parameters, "textDocument", VariantType.DICTIONARY, "DidSaveTextDocumentParams");
+                    var tdi_variant = expect_property (parameters, "textDocument", VariantType.VARDICT, "DidSaveTextDocumentParams");
                     var text_variant = lookup_property (parameters, "text", VariantType.STRING, "DidSaveTextDocumentParams");
                     string? text = text_variant != null ? (string) text_variant : null;
                     yield text_document_did_save_async (lsp_client, TextDocumentIdentifier.from_variant (tdi_variant), text);

@@ -119,8 +119,8 @@ namespace Lsp {
      * file.
      */
     public struct Location {
-        public Uri uri { get; set; }
         public Range range;
+        public Uri uri { get; set; }
 
         public Location (Uri uri, Range range) {
             this.uri = uri;

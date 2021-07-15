@@ -24,11 +24,12 @@ namespace Lsp {
      *
      * @since 3.16.0
      */
-    public struct CodeDescription {
+    [Compact]
+    public class CodeDescription {
         /**
          * An URI to open with more information about the diagnostic error.
          */
-        public string href { get; set; }
+        public string href;
 
         public CodeDescription (string href) {
             this.href = href;
@@ -87,12 +88,12 @@ namespace Lsp {
         /**
          * The location of this related diagnostic information.
          */
-        public Location location { get; set; }
+        public Location location;
 
         /**
          * The message of this related diagnostic information.
          */
-        public string message { get; set; }
+        public string message;
 
         public DiagnosticRelatedInformation (Location location, string message) {
             this.location = location;
@@ -112,55 +113,71 @@ namespace Lsp {
      * 
      * Diagnostic objects are only valid in the scope of a resource.
      */
-    public struct Diagnostic {
+    [Compact]
+    [CCode (ref_function = "lsp_diagnostic_ref", unref_function = "lsp_diagnostic_unref")]
+    public class Diagnostic {
+        public int ref_count = 1;
+
+        public unowned Diagnostic ref () {
+            AtomicInt.add (ref this.ref_count, 1);
+            return this;
+        }
+
+        public void unref () {
+            if (AtomicInt.dec_and_test (ref this.ref_count))
+                this.free ();
+        }
+
+        private extern void free ();
+
         /**
          * The range at which the message applies.
          */
-        public Range range { get; set; }
+        public Range range;
 
         /**
          * The diagnostic's severity. Can be omitted. If omitted it is up to
          * the client to interpret diagnostics as error, warning, info or hint.
          */
-        public DiagnosticSeverity severity { get; set; }
+        public DiagnosticSeverity severity;
 
         /**
          * The diagnostic's code, which might appear in the user interface.
          */
-        public string? code { get; set; }
+        public string? code;
 
         /**
          * An optional property to describe the error code.
          *
          * @since 3.16.0
          */
-        public CodeDescription? code_description { get; set; }
+        public CodeDescription? code_description;
 
         /**
          * A human-readable string describing the source of this diagnostic,
          * e.g. 'vala' or 'vala lint'.
          */
-        public string? source { get; set; }
+        public string? source;
 
         /**
          * The diagnostic's message.
          */
-        public string message { get; set; }
+        public string message;
 
         /**
          * Additional metadata about the diagnostic.
          *
          * @since 3.15.0
          */
-        public DiagnosticTag[]? tags { get; set; }
+        public DiagnosticTag[]? tags;
 
         /**
          * An array of related diagnostic information, e.g. when symbol-names
          * within a scope collide all definitions can be marked via this
          * property.
          */
-        public DiagnosticRelatedInformation[]? related_information { get; set; }
-
+        public DiagnosticRelatedInformation[]? related_information;
+          
         /**
          * A data entry field that is preserved between a
          * `textDocument/publishDiagnostics` notification and
@@ -168,7 +185,7 @@ namespace Lsp {
          *
          * @since 3.16.0
          */
-        public Variant? data { get; set; }
+        public Variant? data;
 
         public Diagnostic (string message, Range range) {
             this.message = message;
@@ -193,7 +210,7 @@ namespace Lsp {
             }
             if (related_information != null) {
                 Variant[] related_information_list = {};
-                foreach (var related in related_information)
+                foreach (unowned var related in related_information)
                     related_information_list += related.to_variant ();
                 dict.insert_value ("relatedInformation", related_information_list);
             }

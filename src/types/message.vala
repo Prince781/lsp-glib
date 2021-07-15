@@ -45,7 +45,7 @@ namespace Lsp {
         /**
          * A short title like 'Retry', 'Open Log', etc.
          */
-        public string title { get; set; }
+        public string title;
 
         public MessageActionItem (string title) {
             this.title = title;

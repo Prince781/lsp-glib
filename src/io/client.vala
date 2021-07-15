@@ -53,7 +53,7 @@ public class Lsp.Client : Object {
      * @return          The action selected in the editor or `null` if no actions were provided.
      */
     public async MessageActionItem? ask_message_async (MessageType type, string message,
-                                                       MessageActionItem[]? actions = null) throws Error {
+                                                       (unowned MessageActionItem)[]? actions = null) throws Error {
         var dict = new VariantDict ();
         dict.insert_value ("type", type);
         dict.insert_value ("message", message);
@@ -62,7 +62,7 @@ public class Lsp.Client : Object {
             foreach (var action in actions)
                 actions_list += action.to_variant ();
         }
-        dict.insert_value ("actions", new Variant.array (VariantType.DICTIONARY, actions_list));
+        dict.insert_value ("actions", new Variant.array (VariantType.VARDICT, actions_list));
 
         Variant? return_value;
         yield client.call_async ("window/showMessage", dict.end (), server.cancellable, out return_value);
@@ -109,7 +109,7 @@ public class Lsp.Client : Object {
     }
 
     /**
-     * Diagnostics notification are sent from the server to the client to signal
+     * Diagnostics notifications are sent from the server to the client to signal
      * results of validation runs.
      *
      * Diagnostics are “owned” by the server so it is the server’s responsibility
@@ -140,7 +140,7 @@ public class Lsp.Client : Object {
      * @param version       The version number of the document the diagnostics
      *                      are published for.
      */
-    public async void publish_diagnostics (Uri uri, Diagnostic[]? diagnostics, int64? version = null) throws Error {
+    public async void publish_diagnostics (Uri uri, (unowned Diagnostic)[]? diagnostics, int64? version = null) throws Error {
         var dict = new VariantDict ();
         dict.insert_value ("uri", uri_to_string (uri));
         Variant[] diagnostics_list = {};
@@ -148,7 +148,7 @@ public class Lsp.Client : Object {
             foreach (var diagnostic in diagnostics)
                 diagnostics_list += diagnostic.to_variant ();
         }
-        dict.insert_value ("diagnostics", new Variant.array (VariantType.DICTIONARY, diagnostics_list));
+        dict.insert_value ("diagnostics", new Variant.array (VariantType.VARDICT, diagnostics_list));
 
         yield client.send_notification_async ("textDocument/publishDiagnostics", dict.end (), server.cancellable);
     }

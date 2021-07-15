@@ -13,6 +13,7 @@ sources = [version_file] + files([
   'types/command.vala',
   'types/completion.vala',
   'types/diagnostic.vala',
+  'types/error.vala',
   'types/initialization.vala',
   'types/location.vala',
   'types/markupcontent.vala',
@@ -38,7 +39,7 @@ liblsp_glib = library('lsp-glib-' + API_VERSION,
   install: true,
   install_dir: [
     true,
-    get_option('includedir') / 'lsp-glib-' + API_VERSION / 'lsp-glib',
+    get_option('includedir') / 'lsp-glib-' + API_VERSION,
     vapidir,
     g_ir_compiler.found()
   ]
@@ -85,7 +86,6 @@ if get_option('enable_valadoc')
       '--pkg', 'glib-2.0',
       '--pkg', 'gobject-2.0',
       '--pkg', 'gio-2.0',
-      '--pkg', 'json-glib-1.0',
       '--pkg', 'jsonrpc-glib-1.0',
       '--force',
       '--use-svg-images',
