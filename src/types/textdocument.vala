@@ -256,6 +256,16 @@ namespace Lsp {
                 }
             }
         }
+
+        public Variant to_variant () {
+            var dict = new VariantDict ();
+
+            dict.insert_value ("uri", uri.to_string ());
+            if (version != null)
+                dict.insert_value ("version", version);
+
+            return dict.end ();
+        }
     }
 
     /**
@@ -271,6 +281,30 @@ namespace Lsp {
          * The text document's language identifier
          */
         public LanguageId language_id { get; set; }
+
+        internal enum State {
+            /**
+             * The file is not associated with a file on the system.
+             */
+            IN_MEMORY,
+
+            /**
+             * The file is associated with a file on the system and it is up-to-date.
+             */
+            UNMODIFIED,
+
+            /**
+             * The file is associated with a file on the system and it is stale.
+             */
+            MODIFIED
+        }
+
+        /**
+         * (Non-standard) the state of the file.
+         *
+         * @see Lsp.Editor
+         */
+        internal State state { get; set; default = IN_MEMORY; }
 
         /**
          * The version number of this document (it will increase after each
@@ -312,6 +346,17 @@ namespace Lsp {
                 this.text = (string) prop;
             else
                 throw new DeserializeError.MISSING_PROPERTY ("property `text` not found for TextDocumentItem");
+        }
+
+        public Variant to_variant () {
+            var dict = new VariantDict ();
+
+            dict.insert_value ("uri", uri.to_string ());
+            dict.insert_value ("languageId", language_id);
+            dict.insert_value ("version", version);
+            dict.insert_value ("text", text);
+
+            return dict.end ();
         }
     }
 

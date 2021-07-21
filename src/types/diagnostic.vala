@@ -196,11 +196,14 @@ namespace Lsp {
             var dict = new VariantDict ();
 
             dict.insert_value ("range", range.to_variant ());
-            dict.insert_value ("severity", severity);
-            dict.insert_value ("code", code);
+            if (severity != DiagnosticSeverity.UNSET)
+                dict.insert_value ("severity", severity);
+            if (code != null)
+                dict.insert_value ("code", code);
             if (code_description != null)
                 dict.insert_value ("codeDescription", code_description.to_variant ());
-            dict.insert_value ("source", source);
+            if (source != null)
+                dict.insert_value ("source", source);
             dict.insert_value ("message", message);
             if (tags != null) {
                 Variant[] tags_list = {};

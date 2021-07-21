@@ -19,22 +19,8 @@
  */
 
 namespace Lsp {
-    /**
-     * Convenience function to convert a URI to a string.
-     */
-    public string uri_to_string (Uri uri) {
-        return Uri.join (UriFlags.NONE,
-                         uri.get_scheme (),
-                         uri.get_userinfo (),
-                         uri.get_host (),
-                         uri.get_port (),
-                         uri.get_path (),
-                         uri.get_query (),
-                         uri.get_fragment ());
-    }
-
     public uint uri_hash (Uri uri) {
-        return uri_to_string (uri).hash ();
+        return uri.to_string ().hash ();
     }
 
     public bool uri_equal (Uri a, Uri b) {

@@ -77,7 +77,7 @@ namespace Lsp {
 
             root_uri = primary_workspace.uri;
 
-            string root_uri_string = uri_to_string (primary_workspace.uri);
+            string root_uri_string = primary_workspace.uri.to_string ();
 
             root_path = Filename.from_uri (root_uri_string, null);
 
@@ -129,7 +129,7 @@ namespace Lsp {
 
             dict.insert_value ("processId", process_id);
             dict.insert_value ("rootPath", root_path);
-            dict.insert_value ("rootUri", uri_to_string (root_uri));
+            dict.insert_value ("rootUri", root_uri.to_string ());
             if (client_info != null)
                 dict.insert_value ("clientInfo", client_info.to_variant ());
             Variant[] workspaces_list = {};

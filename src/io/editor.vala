@@ -83,10 +83,57 @@ public abstract class Lsp.Editor : Jsonrpc.Server {
 
     /**
      * Opens a file, sending the `textDocument/didOpen` message to the language
-     * server.
+     * server. If the file is already open, this does nothing.
+     *
+     * @param text  if non-null, this means that `uri` is associated with an
+     *              in-memory buffer `text`
      */
-    public async void open (Uri uri, LanguageId language_id) throws Error {
+    public async void open_async (Uri uri, LanguageId language_id, string? text = null) throws Error {
         if (client == null)
             throw new Lsp.ProtocolError.NO_CONNECTION ("not connected to a client");
+
+        if (text_documents.contains (uri))
+            return;     // the document is already open
+
+        bool in_memory = true;
+        if (text == null) {
+            var file = File.new_for_uri (uri.to_string ());
+            var bytes = yield file.load_bytes_async (cancellable, null);
+            text = (string?)bytes.get_data ();  // null means the file was empty
+            in_memory = false;
+        }
+
+        var text_document = new TextDocumentItem (uri, language_id, 1, text ?? "");
+        if (in_memory)
+            text_document.state = TextDocumentItem.State.IN_MEMORY;
+        else
+            text_document.state = TextDocumentItem.State.UNMODIFIED;
+
+        var parameters = new VariantDict ();
+        parameters.insert_value ("textDocument", text_document.to_variant ());
+
+        yield client.send_notification_async ("textDocument/didOpen", parameters.end (), cancellable);
+
+        text_documents[uri] = text_document;
+    }
+
+    /**
+     * Closes a file, sending the `textDocument/didClose` message to the
+     * language server. If the file is not open, this does nothing.
+     */
+    public async void close_async (Uri uri) throws Error {
+        if (client == null)
+            throw new Lsp.ProtocolError.NO_CONNECTION ("not connected to a client");
+
+        if (!text_documents.contains (uri))
+            return;     // the document is not open
+
+        var text_document = text_documents[uri];
+        var parameters = new VariantDict ();
+        parameters.insert_value ("textDocument", TextDocumentIdentifier (text_document.uri, text_document.version).to_variant ());
+
+        yield client.send_notification_async ("textDocument/didClose", parameters.end (), cancellable);
+
+        text_documents.remove (uri);
     }
 }

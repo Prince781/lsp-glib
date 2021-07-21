@@ -38,7 +38,7 @@ namespace Lsp {
 
         public Variant to_variant () {
             var dict = new VariantDict ();
-            dict.insert_value ("uri", uri_to_string (uri));
+            dict.insert_value ("uri", uri.to_string ());
             dict.insert_value ("name", name);
             return dict.end ();
         }

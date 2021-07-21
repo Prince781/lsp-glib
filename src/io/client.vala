@@ -94,7 +94,7 @@ public class Lsp.Client : Object {
     public async bool show_document_async (Uri uri, bool external = false,
                                            bool take_focus = false, bool selection = false) throws Error {
         var dict = new VariantDict ();
-        dict.insert_value ("uri", uri_to_string (uri));
+        dict.insert_value ("uri", uri.to_string ());
         dict.insert_value ("external", external);
         dict.insert_value ("takeFocus", take_focus);
         dict.insert_value ("selection", selection);
@@ -142,7 +142,7 @@ public class Lsp.Client : Object {
      */
     public async void publish_diagnostics (Uri uri, (unowned Diagnostic)[]? diagnostics, int64? version = null) throws Error {
         var dict = new VariantDict ();
-        dict.insert_value ("uri", uri_to_string (uri));
+        dict.insert_value ("uri", uri.to_string ());
         Variant[] diagnostics_list = {};
         if (diagnostics != null) {
             foreach (var diagnostic in diagnostics)
