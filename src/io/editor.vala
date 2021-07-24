@@ -107,10 +107,7 @@ public abstract class Lsp.Editor : Jsonrpc.Server {
         }
 
         var text_document = new TextDocumentItem (uri, language_id, 1, text ?? "");
-        if (in_memory)
-            text_document.state = TextDocumentItem.State.IN_MEMORY;
-        else
-            text_document.state = TextDocumentItem.State.UNMODIFIED;
+        text_document.state = in_memory ? TextDocumentItem.State.IN_MEMORY : TextDocumentItem.State.UNMODIFIED;
 
         var parameters = new VariantDict ();
         parameters.insert_value ("textDocument", text_document.to_variant ());

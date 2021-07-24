@@ -414,7 +414,7 @@ namespace Lsp {
      * omitted the new text is considered to be the full content of the
      * document.
      */
-    public class TextDocumentContentChangeEvent {
+    public struct TextDocumentContentChangeEvent {
         /**
          * The range of the document that changed.
          */

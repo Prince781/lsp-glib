@@ -73,7 +73,7 @@ public abstract class Lsp.Server : Jsonrpc.Server {
                     foreach (var cc in cc_variant) {
                         if (cc == null)
                             throw new DeserializeError.INVALID_TYPE ("expected non-null content changes for DidChangeTextDocumentParams");
-                        content_changes += new TextDocumentContentChangeEvent.from_variant (cc);
+                        content_changes += TextDocumentContentChangeEvent.from_variant (cc);
                     }
                     yield text_document_did_change_async (lsp_client, TextDocumentIdentifier.from_variant (tdi_variant), content_changes);
                     break;
@@ -228,7 +228,7 @@ public abstract class Lsp.Server : Jsonrpc.Server {
      *                            in the order you receive them.
      */
     protected abstract async void text_document_did_change_async (Client client, TextDocumentIdentifier text_document,
-                                                                  TextDocumentContentChangeEvent[] content_changes) throws Error;
+                                                                  (unowned TextDocumentContentChangeEvent)[] content_changes) throws Error;
     
     /**
      * The document save notification is sent from the client to the server when
