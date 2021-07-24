@@ -32,6 +32,9 @@ public abstract class Lsp.Editor : Jsonrpc.Server {
 
     public Cancellable cancellable { get; private set; }
 
+    /**
+     * The initialization info we got from the language server.
+     */
     public InitializeResult? init_result { get; private set; }
 
     public HashTable<Uri, TextDocumentItem> text_documents { get; private set; }
