@@ -22,8 +22,8 @@ namespace Lsp {
     /**
      * Used when showing a message in the editor.
      *
-     * @see Lsp.Client.show_message_async
-     * @see Lsp.Client.ask_message_async
+     * @see Lsp.Editor.show_message_async
+     * @see Lsp.Editor.ask_message_async
      */
     public enum MessageType {
         /**
@@ -39,7 +39,7 @@ namespace Lsp {
     /**
      * Used to show an action in a prompt in the editor.
      *
-     * @see Lsp.Client.ask_message_async
+     * @see Lsp.Editor.ask_message_async
      */
     public struct MessageActionItem {
         /**

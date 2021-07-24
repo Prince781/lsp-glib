@@ -19,6 +19,9 @@
  */
 
 namespace Lsp {
+    /**
+     * @see WorkspaceEdit.changes
+     */
     public interface ResourceOperation {
         public string kind {
             get {
