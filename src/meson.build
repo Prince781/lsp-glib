@@ -70,6 +70,12 @@ pkgconfig.generate(liblsp_glib,
   requires: PKGCONFIG_DEPS,
   description: 'LSP library built on GLib')
 
+lsp_glib_dep = declare_dependency(
+  link_with: liblsp_glib,
+  dependencies: dependencies,
+  include_directories: [include_directories('.')]
+)
+
 if get_option('enable_valadoc')
   valadoc = find_program('valadoc')
   lsp_glib_docs = custom_target('lsp-glib_apidocs',
