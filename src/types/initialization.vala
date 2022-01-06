@@ -72,7 +72,7 @@ namespace Lsp {
         public WorkspaceFolder[] workspaces { get; set; }
 
         public InitializeParams (WorkspaceFolder primary_workspace,
-                                 WorkspaceFolder[]? secondary_workspaces = null) throws ConvertError {
+                                 (unowned WorkspaceFolder)[]? secondary_workspaces = null) throws ConvertError {
             WorkspaceFolder[] temp_workspaces = {};
 
             root_uri = primary_workspace.uri;

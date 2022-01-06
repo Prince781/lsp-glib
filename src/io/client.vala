@@ -70,7 +70,7 @@ public abstract class Lsp.Client : Jsonrpc.Server {
      * @see Lsp.Server.initialize_async
      */
     public async void initialize_async (WorkspaceFolder primary_workspace,
-                                        WorkspaceFolder[]? secondary_workspaces = null) throws Error {
+                                        (unowned WorkspaceFolder)[]? secondary_workspaces = null) throws Error {
         if (client == null)
             throw new Lsp.ProtocolError.NO_CONNECTION ("not connected to a client");
         var init_params = new InitializeParams (primary_workspace, secondary_workspaces);
