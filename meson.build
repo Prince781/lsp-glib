@@ -24,3 +24,4 @@ version_file = vcs_tag(input: 'version.vala.in',
                        command: ['git', 'describe', '--tags', '--dirty'])
 
 subdir('src')
+subdir('doc')
