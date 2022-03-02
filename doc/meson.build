@@ -1,6 +1,6 @@
 if get_option('enable_valadoc')
   valadoc = find_program('valadoc')
-  lsp_glib_docs = custom_target('lsp-glib_apidocs',
+  lsp_glib_docs = custom_target('valadoc-api-docs',
     input: sources,
     install: true,
     # FIXME: Installing to tmp, so the target will be built
@@ -10,7 +10,7 @@ if get_option('enable_valadoc')
     install_dir: get_option('datadir') / 'devhelp' / 'books',
     command: [
       valadoc,
-      '-o', 'valadoc',
+      '-o', meson.current_build_dir() / 'valadoc',
       '--doclet',
       'devhelp',
       '@INPUT@',
@@ -43,7 +43,7 @@ if get_option('gi-docgen')
                                  output: 'lsp-glib.toml',
                                  configuration: toml_conf)
 
-  custom_target('gi-docgen',
+  custom_target('gi-docgen-api-docs',
     input: [lsp_glib_toml],
     output: 'gi-docgen',
     command: [

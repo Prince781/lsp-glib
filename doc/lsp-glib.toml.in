@@ -2,13 +2,13 @@
 version = @VERSION@
 browse_url = "https://github.com/prince781/lsp-glib"
 repository_url = "https://github.com/prince781/lsp-glib.git"
-website_url = "https://github.com/prince781/lsp-glib.git"
+website_url = "https://github.com/prince781/lsp-glib"
 authors = "Princeton Ferro"
 license = "LGPL-2.1"
 description = "LSP library built on GLib. Designed for both editors and servers."
-dependencies = ["GObject-2.0", "Jsonrpc-1.0", "Gee-0.8"]
-devhelp = true
-search_index = true
+dependencies = ["GObject-2.0", "Jsonrpc-1.0", "Gio-2.0"]
+devhelp = false
+search_index = false
 
   [dependencies."GObject-2.0"]
   name = "GObject"
@@ -16,13 +16,13 @@ search_index = true
   docs_url = "https://docs.gtk.org/gobject/"
 
   [dependencies."Jsonrpc-1.0"]
-  name = "jsonrpc-glib"
-  description = "jsonrpc-glib is a library to communicate using the JSON-RPC 2.0 specification."
+  name = "Jsonrpc-glib"
+  description = "Library to communicate using the JSON-RPC 2.0 specification."
   docs_url = "https://gnome.pages.gitlab.gnome.org/jsonrpc-glib/"
 
-  [dependencies."Gee-0.8"]
-  name = "libgee"
-  description = "Libgee is a collection library providing GObject-based interfaces and classes for commonly used data structures."
+  [dependencies."Gio-2.0"]
+  name = "Gio"
+  description = "GObject Interfaces and Objects, Networking, IPC, and I/O"
 
 [theme]
 name = "basic"
