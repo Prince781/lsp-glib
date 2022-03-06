@@ -45,6 +45,8 @@ liblsp_glib = library('lsp-glib-' + API_VERSION,
   ]
 )
 
+lsp_glib_gir = meson.current_build_dir() / 'Lsp-' + API_VERSION + '.gir'
+
 install_data('lsp-glib.deps',
              install_dir: join_paths(get_option('prefix'), get_option('datadir'), 'vala', 'vapi'))
 
@@ -76,33 +78,3 @@ lsp_glib_dep = declare_dependency(
   include_directories: [include_directories('.')]
 )
 
-if get_option('enable_valadoc')
-  valadoc = find_program('valadoc')
-  lsp_glib_docs = custom_target('lsp-glib_apidocs',
-    input: sources,
-    install: true,
-    # FIXME: Installing to tmp, so the target will be built
-    #        the problem is we cannot access a subfolder of the
-    #        buildtarget via the output parameter.
-    #        Find a nicer solution
-    install_dir: get_option('datadir') / 'devhelp' / 'books',
-    command: [
-      valadoc,
-      '-o', meson.current_build_dir() / 'Lsp-' + API_VERSION,
-      '--doclet',
-      'devhelp',
-      '@INPUT@',
-      '--pkg', 'glib-2.0',
-      '--pkg', 'gobject-2.0',
-      '--pkg', 'gio-2.0',
-      '--pkg', 'jsonrpc-glib-1.0',
-      '--force',
-      '--use-svg-images',
-      '--package-name', 'lsp-glib-' + API_VERSION,
-      '--package-version', API_VERSION
-    ],
-    output: 'Lsp-' + API_VERSION)
-
-  install_subdir(meson.current_build_dir() / 'Lsp-' + API_VERSION / 'lsp-glib-' + API_VERSION,
-    install_dir: get_option('datadir') / 'devhelp' / 'books')
-endif

@@ -1,2 +1,2 @@
 option('enable_valadoc', type: 'boolean', value: true)
-
+option('gi-docgen', type: 'boolean', value: true) 
