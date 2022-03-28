@@ -24,12 +24,12 @@ namespace Lsp {
      *
      * @since 3.16.0
      */
-    [Compact]
+    [Compact (opaque=true)]
     public class CodeDescription {
         /**
          * An URI to open with more information about the diagnostic error.
          */
-        public string href;
+        public string href { get; set; }
 
         public CodeDescription (string href) {
             this.href = href;
@@ -113,10 +113,10 @@ namespace Lsp {
      * 
      * Diagnostic objects are only valid in the scope of a resource.
      */
-    [Compact]
+    [Compact (opaque=true)]
     [CCode (ref_function = "lsp_diagnostic_ref", unref_function = "lsp_diagnostic_unref")]
     public class Diagnostic {
-        public int ref_count = 1;
+        private int ref_count = 1;
 
         public unowned Diagnostic ref () {
             AtomicInt.add (ref this.ref_count, 1);
@@ -133,50 +133,50 @@ namespace Lsp {
         /**
          * The range at which the message applies.
          */
-        public Range range;
+        public Range range { get; set; }
 
         /**
          * The diagnostic's severity. Can be omitted. If omitted it is up to
          * the client to interpret diagnostics as error, warning, info or hint.
          */
-        public DiagnosticSeverity severity;
+        public DiagnosticSeverity severity { get; set; }
 
         /**
          * The diagnostic's code, which might appear in the user interface.
          */
-        public string? code;
+        public string? code { get; set; }
 
         /**
          * An optional property to describe the error code.
          *
          * @since 3.16.0
          */
-        public CodeDescription? code_description;
+        public CodeDescription? code_description { get; owned set; }
 
         /**
          * A human-readable string describing the source of this diagnostic,
          * e.g. 'vala' or 'vala lint'.
          */
-        public string? source;
+        public string? source { get; set; }
 
         /**
          * The diagnostic's message.
          */
-        public string message;
+        public string message { get; set; }
 
         /**
          * Additional metadata about the diagnostic.
          *
          * @since 3.15.0
          */
-        public DiagnosticTag[]? tags;
+        public DiagnosticTag[]? tags { get; set; }
 
         /**
          * An array of related diagnostic information, e.g. when symbol-names
          * within a scope collide all definitions can be marked via this
          * property.
          */
-        public DiagnosticRelatedInformation[]? related_information;
+        public DiagnosticRelatedInformation[]? related_information { get; set; }
           
         /**
          * A data entry field that is preserved between a
@@ -185,7 +185,7 @@ namespace Lsp {
          *
          * @since 3.16.0
          */
-        public Variant? data;
+        public Variant? data { get; set; }
 
         public Diagnostic (string message, Range range) {
             this.message = message;

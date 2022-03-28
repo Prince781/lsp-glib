@@ -22,19 +22,19 @@ namespace Lsp {
     /**
      * A textual edit applicable to a text document.
      */
-    [Compact]
+    [Compact (opaque=true)]
     public class TextEdit {
         /**
          * The range of the text document to be manipulated. To insert text
          * into a document create a range where start === end.
          */
-        public Range range;
+        public Range range { get; set; }
 
         /**
          * The string to be inserted. For delete operations use an empty
          * string.
          */
-        public string new_text;
+        public string new_text { get; set; }
 
         /**
          * An identifier referring to a change annotation managed by a workspace
@@ -57,7 +57,7 @@ namespace Lsp {
          *
          * @since 3.16.0
          */
-        public string? annotation_id;
+        public string? annotation_id { get; set; }
 
         public TextEdit (Range range, string new_text, string? annotation_id = null) {
             this.range = range;
@@ -71,25 +71,25 @@ namespace Lsp {
      *
      * @since 3.16.0
      */
-    [Compact]
+    [Compact (opaque=true)]
     public class ChangeAnnotation {
         /**
          * A human-readable string describing the actual change. The string is
          * rendered prominent in the user interface.
          */
-        public string label;
+        public string label { get; set; }
 
         /**
          * A flag which indicates that user confirmation is needed before
          * applying the change.
          */
-        public bool needs_confirmation;
+        public bool needs_confirmation { get; set; }
 
         /**
          * A human-readable string which is rendered less prominent in the user
          * interface.
          */
-        public string? description;
+        public string? description { get; set; }
 
         public ChangeAnnotation (string label, bool needs_confirmation = false, string? description = null) {
             this.label = label;

@@ -55,10 +55,10 @@ namespace Lsp {
      * ''Please Note'' that clients might sanitize the return markdown. A client could
      * decide to remove HTML from the markdown to avoid script execution.
      */
-    [Compact]
+    [Compact (opaque=true)]
     [CCode (ref_function = "lsp_markup_content_ref", unref_function = "lsp_markup_content_unref")]
     public class MarkupContent {
-        public int ref_count = 1;
+        private int ref_count = 1;
 
         public unowned MarkupContent ref () {
             AtomicInt.add (ref this.ref_count, 1);
@@ -75,12 +75,12 @@ namespace Lsp {
         /**
          * The type of the markup
          */
-        public MarkupKind kind;
+        public MarkupKind kind { get; set; }
 
         /**
          * The content itself
          */
-        public string value;
+        public string value { get; set; }
 
         public MarkupContent (MarkupKind kind, string value) {
             this.kind = kind;
