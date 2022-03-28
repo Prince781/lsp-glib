@@ -29,10 +29,10 @@ namespace Lsp {
      * Alternatively the tool extension code could handle the command. The
      * protocol currently doesn’t specify a set of well-known commands.
      */
-    [Compact]
+    [Compact (opaque=true)]
     [CCode (ref_function = "lsp_command_ref", unref_function = "lsp_command_unref")]
     public class Command {
-        public int ref_count = 1;
+        private int ref_count = 1;
 
         public unowned Command ref () {
             AtomicInt.add (ref this.ref_count, 1);
@@ -49,17 +49,17 @@ namespace Lsp {
         /**
          * Title of the command, like `save`.
          */
-        public string title;
+        public string title { get; set; }
 
         /**
          * The identifier of the actual command handler.
          */
-        public string command;
+        public string command { get; set; }
 
         /**
          * Arguments that the command handler should be invoked with.
          */
-        public Variant[]? arguments;
+        public Variant[]? arguments { get; set; }
 
         public Command (string title, string command, Variant[]? arguments = null) {
             this.title = title;
