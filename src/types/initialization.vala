@@ -24,7 +24,23 @@ namespace Lsp {
      *
      * @since 3.15.0
      */
+    [Compact (opaque = true)]
+    [CCode (ref_function = "lsp_client_info_ref", unref_function = "lsp_client_info_unref")]
     public class ClientInfo {
+        private int ref_count = 1;
+
+        public unowned ClientInfo ref () {
+            AtomicInt.add (ref this.ref_count, 1);
+            return this;
+        }
+
+        public void unref () {
+            if (AtomicInt.dec_and_test (ref this.ref_count))
+                this.free ();
+        }
+
+        private extern void free ();
+
         public string name { get; set; }
         public string? version { get; set; }
 
@@ -45,7 +61,23 @@ namespace Lsp {
     /**
      * Sent from the client / editor to the server.
      */
+    [Compact (opaque = true)]
+    [CCode (ref_function = "lsp_initialize_params_ref", unref_function = "lsp_initialize_params_unref")]
     public class InitializeParams {
+        private int ref_count = 1;
+
+        public unowned InitializeParams ref () {
+            AtomicInt.add (ref this.ref_count, 1);
+            return this;
+        }
+
+        public void unref () {
+            if (AtomicInt.dec_and_test (ref this.ref_count))
+                this.free ();
+        }
+
+        private extern void free ();
+
         public int64 process_id { get; private set; }
 
         /**
@@ -146,7 +178,23 @@ namespace Lsp {
      *
      * @since 3.15.0
      */
+    [Compact (opaque = true)]
+    [CCode (ref_function = "lsp_server_info_ref", unref_function = "lsp_server_info_unref")]
     public class ServerInfo {
+        private int ref_count = 1;
+
+        public unowned ServerInfo ref () {
+            AtomicInt.add (ref this.ref_count, 1);
+            return this;
+        }
+
+        public void unref () {
+            if (AtomicInt.dec_and_test (ref this.ref_count))
+                this.free ();
+        }
+
+        private extern void free ();
+
         public string name { get; set; }
         public string? version { get; set; }
 
@@ -170,7 +218,23 @@ namespace Lsp {
      * Sent from the language server to the client / editor after
      * initialization.
      */
+    [Compact (opaque = true)]
+    [CCode (ref_function = "lsp_initialize_result_ref", unref_function = "lsp_initialize_result_unref")]
     public class InitializeResult {
+        private int ref_count = 1;
+
+        public unowned InitializeResult ref () {
+            AtomicInt.add (ref this.ref_count, 1);
+            return this;
+        }
+
+        public void unref () {
+            if (AtomicInt.dec_and_test (ref this.ref_count))
+                this.free ();
+        }
+
+        private extern void free ();
+
         /**
          * The capabilities the language server provides.
          */

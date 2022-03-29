@@ -106,7 +106,23 @@ namespace Lsp {
         DEPRECATED
     }
 
+    [Compact (opaque = true)]
+    [CCode (ref_function = "lsp_completion_item_ref", unref_function = "lsp_completion_item_unref")]
     public class CompletionItem {
+        private int ref_count = 1;
+
+        public unowned CompletionItem ref () {
+            AtomicInt.add (ref this.ref_count, 1);
+            return this;
+        }
+
+        public void unref () {
+            if (AtomicInt.dec_and_test (ref this.ref_count))
+                this.free ();
+        }
+
+        private extern void free ();
+
         public string label { get; set; }
 
         public CompletionItemKind kind { get; set; }

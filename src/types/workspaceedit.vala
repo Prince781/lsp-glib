@@ -99,7 +99,23 @@ namespace Lsp {
      * A workspace edit represents changes to many resources managed in the
      * workspace.
      */
+    [Compact (opaque = true)]
+    [CCode (ref_function = "lsp_workspace_edit_ref", unref_function = "lsp_workspace_edit_unref")]
     public class WorkspaceEdit {
+        private int ref_count = 1;
+
+        public unowned WorkspaceEdit ref () {
+            AtomicInt.add (ref this.ref_count, 1);
+            return this;
+        }
+
+        public void unref () {
+            if (AtomicInt.dec_and_test (ref this.ref_count))
+                this.free ();
+        }
+
+        private extern void free ();
+
         /**
          * Holds changes to existing resources.
          *

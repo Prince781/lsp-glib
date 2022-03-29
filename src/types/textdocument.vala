@@ -271,7 +271,23 @@ namespace Lsp {
     /**
      * An item to transfer a text document from the client to the server.
      */
+    [Compact (opaque = true)]
+    [CCode (ref_function = "lsp_text_document_item_ref", unref_function = "lsp_text_document_item_unref")]
     public class TextDocumentItem {
+        private int ref_count = 1;
+
+        public unowned TextDocumentItem ref () {
+            AtomicInt.add (ref this.ref_count, 1);
+            return this;
+        }
+
+        public void unref () {
+            if (AtomicInt.dec_and_test (ref this.ref_count))
+                this.free ();
+        }
+
+        private extern void free ();
+
         /**
          * The text document's URI
          */
