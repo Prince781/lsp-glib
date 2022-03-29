@@ -68,7 +68,7 @@ public abstract class Lsp.Server : Jsonrpc.Server {
                     break;
 
                 case "initialized":
-                    yield initialized_async (lsp_client);
+                    yield on_initialized_async (lsp_client);
                     break;
 
                 case "textDocument/didChange":
@@ -80,24 +80,24 @@ public abstract class Lsp.Server : Jsonrpc.Server {
                             throw new DeserializeError.INVALID_TYPE ("expected non-null content changes for DidChangeTextDocumentParams");
                         content_changes += TextDocumentContentChangeEvent.from_variant (cc);
                     }
-                    yield text_document_did_change_async (lsp_client, TextDocumentIdentifier.from_variant (tdi_variant), content_changes);
+                    yield on_text_document_did_change_async (lsp_client, TextDocumentIdentifier.from_variant (tdi_variant), content_changes);
                     break;
 
                 case "textDocument/didClose":
                     var tdi_variant = expect_property (parameters, "textDocument", VariantType.VARDICT, "DidCloseTextDocumentParams");
-                    yield text_document_did_close_async (lsp_client, TextDocumentIdentifier.from_variant (tdi_variant));
+                    yield on_text_document_did_close_async (lsp_client, TextDocumentIdentifier.from_variant (tdi_variant));
                     break;
 
                 case "textDocument/didOpen":
                     var tdi_variant = expect_property (parameters, "textDocument", VariantType.VARDICT, "DidOpenTextDocumentParams");
-                    yield text_document_did_open_async (lsp_client, new TextDocumentItem.from_variant (tdi_variant));
+                    yield on_text_document_did_open_async (lsp_client, new TextDocumentItem.from_variant (tdi_variant));
                     break;
                 
                 case "textDocument/didSave":
                     var tdi_variant = expect_property (parameters, "textDocument", VariantType.VARDICT, "DidSaveTextDocumentParams");
                     var text_variant = lookup_property (parameters, "text", VariantType.STRING, "DidSaveTextDocumentParams");
                     string? text = text_variant != null ? (string) text_variant : null;
-                    yield text_document_did_save_async (lsp_client, TextDocumentIdentifier.from_variant (tdi_variant), text);
+                    yield on_text_document_did_save_async (lsp_client, TextDocumentIdentifier.from_variant (tdi_variant), text);
                     break;
 
                 default:
@@ -192,7 +192,7 @@ public abstract class Lsp.Server : Jsonrpc.Server {
      * dynamically register capabilities. The initialized notification may only
      * be sent once.
      */
-    protected virtual async void initialized_async (Editor editor) throws Error {
+    protected virtual async void on_initialized_async (Editor editor) throws Error {
         // do nothing
     }
 
@@ -210,13 +210,13 @@ public abstract class Lsp.Server : Jsonrpc.Server {
      * ability to fulfill requests is independent of whether a text document is
      * open or closed.
      */
-    protected abstract async void text_document_did_open_async (Editor editor, TextDocumentItem text_document) throws Error;
+    protected abstract async void on_text_document_did_open_async (Editor editor, TextDocumentItem text_document) throws Error;
 
     /**
      * The document change notification is sent from the client to the server to
      * signal changes to a text document. Before a client can change a text
      * document it must claim ownership of its content using the
-     * textDocument/didOpen notification (see {@link text_document_did_open_async}).
+     * textDocument/didOpen notification (see {@link on_text_document_did_open_async}).
      *
      * @param text_document     The text document with a version number set.
      * @param content_changes   The actual content changes. The content changes describe single state
@@ -232,8 +232,8 @@ public abstract class Lsp.Server : Jsonrpc.Server {
      *                          - apply the `TextDocumentContentChangeEvent`s in a single notification
      *                            in the order you receive them.
      */
-    protected abstract async void text_document_did_change_async (Editor editor, TextDocumentIdentifier text_document,
-                                                                  (unowned TextDocumentContentChangeEvent)[] content_changes) throws Error;
+    protected abstract async void on_text_document_did_change_async (Editor editor, TextDocumentIdentifier text_document,
+                                                                     (unowned TextDocumentContentChangeEvent)[] content_changes) throws Error;
     
     /**
      * The document save notification is sent from the client to the server when
@@ -243,8 +243,8 @@ public abstract class Lsp.Server : Jsonrpc.Server {
      * @param text              The content when saved. Depends on whether the
      *                          server has opted to receive this.
      */
-    protected virtual async void text_document_did_save_async (Editor editor, TextDocumentIdentifier text_document,
-                                                               string? text) throws Error {
+    protected virtual async void on_text_document_did_save_async (Editor editor, TextDocumentIdentifier text_document,
+                                                                  string? text) throws Error {
         // do nothing
     }
 
@@ -263,7 +263,7 @@ public abstract class Lsp.Server : Jsonrpc.Server {
      *
      * @param text_document     The document that was closed.
      */
-    protected abstract async void text_document_did_close_async (Editor editor, TextDocumentIdentifier text_document) throws Error;
+    protected abstract async void on_text_document_did_close_async (Editor editor, TextDocumentIdentifier text_document) throws Error;
 
     /**
      * The shutdown request is sent from the client to the server. It asks

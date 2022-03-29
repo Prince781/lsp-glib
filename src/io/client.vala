@@ -52,6 +52,28 @@ public abstract class Lsp.Client : Jsonrpc.Server {
     private async void notification_async (Jsonrpc.Client client, string method, Variant parameters) {
         if (exited)
             return;
+
+        try {
+            switch (method) {
+                case "window/showMessage":
+                    var sm_type = expect_property (parameters, "type", VariantType.INT64, "ShowMessageParams");
+                    string message = (string) expect_property (parameters, "message", VariantType.STRING, "ShowMessageParams");
+                    yield on_show_message_async (MessageType.parse_int ((int)(int64)sm_type), message);
+                    break;
+
+                case "textDocument/publishDiagnostics":
+                    var pd_uri = expect_property (parameters, "uri", VariantType.STRING, "PublishDiagnosticsParams");
+                    var pd_version = lookup_property (parameters, "version", VariantType.INT64, "PublishDiagnosticsParams");
+                    int64? version = pd_version != null ? (int64?)pd_version : null;
+                    Diagnostic[] diags = {};
+                    foreach (var diag in expect_property (parameters, "diagnostics", VariantType.ARRAY, "PublishDiagnosticsParams"))
+                        diags += new Diagnostic.from_variant (diag);
+                    yield on_publish_diagnostics_async (Uri.parse ((string)pd_uri, UriFlags.NONE), version, diags);
+                    break;
+            }
+        } catch (Error e) {
+            warning ("handling notification failed - %s", e.message);
+        }
     }
 
     private async void handle_call_async (Jsonrpc.Client client, string method, Variant id, Variant parameters) {
@@ -62,6 +84,20 @@ public abstract class Lsp.Client : Jsonrpc.Server {
     protected override void client_accepted (Jsonrpc.Client client) {
         if (this.client == null)
             this.client = client;
+    }
+
+    /**
+     * Handles the `window/showMessage` notification
+     */
+    protected virtual async void on_show_message_async (MessageType type, string message) throws Error {
+        // do nothing
+    }
+
+    /**
+     * Handles the `textDocument/publishDiagnostics` notification
+     */
+    protected virtual async void on_publish_diagnostics_async (Uri uri, int64? version, Diagnostic[] diagnostics) throws Error {
+        // do nothing
     }
 
     /**
@@ -91,7 +127,7 @@ public abstract class Lsp.Client : Jsonrpc.Server {
      * @param text  if non-null, this means that `uri` is associated with an
      *              in-memory buffer `text`
      */
-    public async void open_async (Uri uri, LanguageId language_id, string? text = null) throws Error {
+    public async void open_text_document_async (Uri uri, LanguageId language_id, string? text = null) throws Error {
         if (client == null)
             throw new Lsp.ProtocolError.NO_CONNECTION ("not connected to a client");
 
@@ -121,7 +157,7 @@ public abstract class Lsp.Client : Jsonrpc.Server {
      * Closes a file, sending the `textDocument/didClose` message to the
      * language server. If the file is not open, this does nothing.
      */
-    public async void close_async (Uri uri) throws Error {
+    public async void close_text_document_async (Uri uri) throws Error {
         if (client == null)
             throw new Lsp.ProtocolError.NO_CONNECTION ("not connected to a client");
 

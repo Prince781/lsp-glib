@@ -75,7 +75,13 @@ namespace Lsp {
          * Clients are allowed to render diagnostics with this tag strike
          * through.
          */
-        DEPRECATED  = 2
+        DEPRECATED  = 2;
+
+        public static DiagnosticTag parse_int (int value) throws DeserializeError {
+            if (value == UNSET || value == UNNECESSARY || value == DEPRECATED)
+                return value;
+            throw new DeserializeError.INVALID_TYPE ("%d is not a %s", value, typeof (DiagnosticTag).name ());
+        }
     }
 
     /**
@@ -88,16 +94,21 @@ namespace Lsp {
         /**
          * The location of this related diagnostic information.
          */
-        public Location location;
+        public Location location { get; set; }
 
         /**
          * The message of this related diagnostic information.
          */
-        public string message;
+        public string message { get; set; }
 
         public DiagnosticRelatedInformation (Location location, string message) {
             this.location = location;
             this.message = message;
+        }
+
+        public DiagnosticRelatedInformation.from_variant (Variant variant) throws Error {
+            location = Location.from_variant (expect_property (variant, "location", VariantType.VARIANT, typeof (DiagnosticRelatedInformation).name ()));
+            message = (string) expect_property (variant, "message", VariantType.STRING, typeof (DiagnosticRelatedInformation).name ());
         }
 
         public Variant to_variant () {
@@ -190,6 +201,46 @@ namespace Lsp {
         public Diagnostic (string message, Range range) {
             this.message = message;
             this.range = range;
+        }
+
+        public Diagnostic.from_variant (Variant variant) throws Error {
+            Variant? prop = null;
+
+            range = Range.from_variant (expect_property (variant, "range", VariantType.VARIANT, "LspDiagnostic"));
+
+            if ((prop = lookup_property (variant, "severity", VariantType.INT64, "LspDiagnostic")) != null)
+                severity = (DiagnosticSeverity) prop;
+
+            if ((prop = lookup_property (variant, "code", VariantType.INT64, "LspDiagnostic")) != null) {
+                if (prop.is_of_type (VariantType.INT64))
+                    code = ((int64)prop).to_string ();
+                else if (prop.is_of_type (VariantType.STRING))
+                    code = (string)prop;
+                else
+                    throw new DeserializeError.INVALID_TYPE ("LspDiagnostic.code must be an int64 or a string");
+            }
+
+            message = (string) expect_property (variant, "message", VariantType.STRING, "LspDiagnostic");
+
+            if ((prop = lookup_property (variant, "tags", VariantType.ARRAY, "LspDiagnostic")) != null) {
+                DiagnosticTag[] diag_tags = {};
+                foreach (var tag in prop) {
+                    if (!tag.is_of_type (VariantType.INT64))
+                        throw new DeserializeError.INVALID_TYPE ("expected int64 element in LspDiagnostic.tags");
+                    diag_tags += DiagnosticTag.parse_int ((int) (int64) tag);
+                }
+                tags = diag_tags;
+            }
+
+            if ((prop = lookup_property (variant, "relatedInformation", VariantType.ARRAY, "LspDiagnostic")) != null) {
+                DiagnosticRelatedInformation[] related_info = {};
+                foreach (var tag in prop) {
+                    if (!tag.is_of_type (VariantType.INT64))
+                        throw new DeserializeError.INVALID_TYPE ("expected DiagnosticRelatedInformation element in Diagnostic.relatedInformation");
+                    related_info += DiagnosticRelatedInformation.from_variant (tag);
+                }
+                related_information = related_info;
+            }
         }
 
         public Variant to_variant () {

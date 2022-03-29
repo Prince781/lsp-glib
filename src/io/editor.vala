@@ -140,7 +140,7 @@ public class Lsp.Editor : Object {
      * @param version       The version number of the document the diagnostics
      *                      are published for.
      */
-    public async void publish_diagnostics (Uri uri, (unowned Diagnostic)[]? diagnostics, int64? version = null) throws Error {
+    public async void publish_diagnostics_async (Uri uri, (unowned Diagnostic)[]? diagnostics, int64? version = null) throws Error {
         var dict = new VariantDict ();
         dict.insert_value ("uri", uri.to_string ());
         Variant[] diagnostics_list = {};

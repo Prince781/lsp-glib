@@ -33,7 +33,13 @@ namespace Lsp {
         ERROR   = 1,
         WARNING = 2,
         INFO    = 3,
-        LOG     = 4
+        LOG     = 4;
+
+        public static MessageType parse_int (int value) {
+            if (value == ERROR || value == WARNING || value == INFO || value == LOG)
+                return (MessageType) value;
+            return UNKNOWN;
+        }
     }
 
     /**
