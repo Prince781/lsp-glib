@@ -22,8 +22,7 @@ namespace Lsp {
     /**
      * A textual edit applicable to a text document.
      */
-    [Compact (opaque=true)]
-    public class TextEdit {
+    public struct TextEdit {
         /**
          * The range of the text document to be manipulated. To insert text
          * into a document create a range where start === end.
@@ -71,8 +70,23 @@ namespace Lsp {
      *
      * @since 3.16.0
      */
-    [Compact (opaque=true)]
+    [Compact (opaque = true)]
+    [CCode (ref_function = "lsp_change_annotation_ref", unref_function = "Lsp_change_annotation_unref")]
     public class ChangeAnnotation {
+        private int ref_count = 1;
+
+        public unowned ChangeAnnotation ref () {
+            AtomicInt.add (ref this.ref_count, 1);
+            return this;
+        }
+
+        public void unref () {
+            if (AtomicInt.dec_and_test (ref this.ref_count))
+                this.free ();
+        }
+
+        private extern void free ();
+
         /**
          * A human-readable string describing the actual change. The string is
          * rendered prominent in the user interface.
@@ -125,7 +139,7 @@ namespace Lsp {
          */
         public TextEdit[] edits {
             get { return _edits; }
-            owned set {
+            set {
                 for (var i = 0; i < value.length; i++)
                     _edits += (owned)value[i];
             }

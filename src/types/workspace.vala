@@ -19,7 +19,23 @@
  */
 
 namespace Lsp {
+    [Compact (opaque = true)]
+    [CCode (ref_function = "lsp_workspace_folder_ref", unref_function = "lsp_workspace_folder_unref")]
     public class WorkspaceFolder {
+        private int ref_count = 1;
+
+        public unowned WorkspaceFolder ref () {
+            AtomicInt.add (ref this.ref_count, 1);
+            return this;
+        }
+
+        public void unref () {
+            if (AtomicInt.dec_and_test (ref this.ref_count))
+                this.free ();
+        }
+
+        private extern void free ();
+
         /**
          * The URI associated with the root of this workspace folder.
          */

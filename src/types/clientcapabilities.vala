@@ -86,6 +86,7 @@ namespace Lsp {
      * 
      * @see WorkspaceEditClientCaps.resource_ops
      */
+    [Compact (opaque = true)]
     public class WorkspaceEditClientCaps {
         /**
          * The client supports versioned document changes in {@link WorkspaceEdit}s
@@ -140,7 +141,23 @@ namespace Lsp {
     /**
      * Workspace-specific client capabilities.
      */
+    [Compact (opaque = true)]
+    [CCode (ref_function = "lsp_workspace_client_caps_ref", unref_function = "lsp_workspace_client_caps_unref")]
     public class WorkspaceClientCaps {
+        private int ref_count = 1;
+
+        public unowned WorkspaceClientCaps ref () {
+            AtomicInt.add (ref this.ref_count, 1);
+            return this;
+        }
+
+        public void unref () {
+            if (AtomicInt.dec_and_test (ref this.ref_count))
+                this.free ();
+        }
+
+        private extern void free ();
+
         /**
          * The client supports applying batch edits to the workspace by
          * supporting the request 'workspace/applyEdit'
@@ -151,7 +168,23 @@ namespace Lsp {
     /**
      * Completion-specific client capabilities
      */
+    [Compact (opaque = true)]
+    [CCode (ref_function = "lsp_completion_client_caps_ref", unref_function = "lsp_completion_client_caps_unref")]
     public class CompletionClientCaps {
+        private int ref_count = 1;
+
+        public unowned CompletionClientCaps ref () {
+            AtomicInt.add (ref this.ref_count, 1);
+            return this;
+        }
+
+        public void unref () {
+            if (AtomicInt.dec_and_test (ref this.ref_count))
+                this.free ();
+        }
+
+        private extern void free ();
+
         /**
          * Client supports snippets as insert text.
 		 *
@@ -264,7 +297,23 @@ namespace Lsp {
     /**
      * Text document-specific client capabilities.
      */
+    [Compact (opaque = true)]
+    [CCode (ref_function = "lsp_text_document_client_caps_ref", unref_function = "lsp_text_document_client_caps_unref")]
     public class TextDocumentClientCaps {
+        private int ref_count = 1;
+
+        public unowned TextDocumentClientCaps ref () {
+            AtomicInt.add (ref this.ref_count, 1);
+            return this;
+        }
+
+        public void unref () {
+            if (AtomicInt.dec_and_test (ref this.ref_count))
+                this.free ();
+        }
+
+        private extern void free ();
+
         public TextDocumentSyncClientCaps synchronization { get; set; }
 
         public CompletionClientCaps completion { get; set; }
@@ -273,7 +322,23 @@ namespace Lsp {
     /**
      * Capabilities of the client / editor.
      */
+    [Compact (opaque = true)]
+    [CCode (ref_function = "lsp_client_caps_ref", unref_function = "lsp_client_caps_unref")]
     public class ClientCaps {
+        private int ref_count = 1;
+
+        public unowned ClientCaps ref () {
+            AtomicInt.add (ref this.ref_count, 1);
+            return this;
+        }
+
+        public void unref () {
+            if (AtomicInt.dec_and_test (ref this.ref_count))
+                this.free ();
+        }
+
+        private extern void free ();
+
         /**
          * Workspace-specific client capabilities.
          */

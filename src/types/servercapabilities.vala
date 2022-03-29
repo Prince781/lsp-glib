@@ -19,7 +19,23 @@
  */
 
 namespace Lsp {
+    [Compact (opaque = true)]
+    [CCode (ref_function = "lsp_completion_options_ref", unref_function = "lsp_completion_options_unref")]
     public class CompletionOptions {
+        private int ref_count = 1;
+
+        public unowned CompletionOptions ref () {
+            AtomicInt.add (ref this.ref_count, 1);
+            return this;
+        }
+
+        public void unref () {
+            if (AtomicInt.dec_and_test (ref this.ref_count))
+                this.free ();
+        }
+
+        private extern void free ();
+
         /**
          * Most tools trigger completion request automatically without
          * explicitly requesting it using a keyboard shortcut (e.g.
@@ -128,7 +144,23 @@ namespace Lsp {
         }
     }
 
+    [Compact (opaque = true)]
+    [CCode (ref_function = "lsp_code_lens_options_ref", unref_function = "lsp_code_lens_options_unref")]
     public class CodeLensOptions {
+        private int ref_count = 1;
+
+        public unowned CodeLensOptions ref () {
+            AtomicInt.add (ref this.ref_count, 1);
+            return this;
+        }
+
+        public void unref () {
+            if (AtomicInt.dec_and_test (ref this.ref_count))
+                this.free ();
+        }
+
+        private extern void free ();
+
         /**
          * Code lens has a resolve provider as well.
          */
@@ -154,7 +186,23 @@ namespace Lsp {
         }
     }
 
+    [Compact (opaque = true)]
+    [CCode (ref_function = "lsp_document_link_options_ref", unref_function = "lsp_document_link_options_unref")]
     public class DocumentLinkOptions {
+        private int ref_count = 1;
+
+        public unowned DocumentLinkOptions ref () {
+            AtomicInt.add (ref this.ref_count, 1);
+            return this;
+        }
+
+        public void unref () {
+            if (AtomicInt.dec_and_test (ref this.ref_count))
+                this.free ();
+        }
+
+        private extern void free ();
+
         /**
          * Document links have a resolve provider as well.
          */
@@ -180,7 +228,23 @@ namespace Lsp {
         }
     }
 
+    [Compact (opaque = true)]
+    [CCode (ref_function = "lsp_document_on_type_formatting_options_ref", unref_function = "lsp_document_on_type_formatting_options_unref")]
     public class DocumentOnTypeFormattingOptions {
+        private int ref_count = 1;
+
+        public unowned DocumentOnTypeFormattingOptions ref () {
+            AtomicInt.add (ref this.ref_count, 1);
+            return this;
+        }
+
+        public void unref () {
+            if (AtomicInt.dec_and_test (ref this.ref_count))
+                this.free ();
+        }
+
+        private extern void free ();
+
         /**
          * The character on which formatting should be triggered, like `}`.
          */
@@ -216,7 +280,23 @@ namespace Lsp {
         }
     }
 
+    [Compact (opaque = true)]
+    [CCode (ref_function = "lsp_rename_options_ref", unref_function = "lsp_rename_options_unref")]
     public class RenameOptions {
+        private int ref_count = 1;
+
+        public unowned RenameOptions ref () {
+            AtomicInt.add (ref this.ref_count, 1);
+            return this;
+        }
+
+        public void unref () {
+            if (AtomicInt.dec_and_test (ref this.ref_count))
+                this.free ();
+        }
+
+        private extern void free ();
+
         /**
          * The server supports renames being checked and tested before being
          * executed.
@@ -246,7 +326,23 @@ namespace Lsp {
     /**
      * The capabilities of the language server.
      */
+    [Compact (opaque = true)]
+    [CCode (ref_function = "lsp_server_caps_ref", unref_function = "lsp_server_caps_unref")]
     public class ServerCaps {
+        private int ref_count = 1;
+
+        public unowned ServerCaps ref () {
+            AtomicInt.add (ref this.ref_count, 1);
+            return this;
+        }
+
+        public void unref () {
+            if (AtomicInt.dec_and_test (ref this.ref_count))
+                this.free ();
+        }
+
+        private extern void free ();
+
         /**
          * Defines how text documents are synced.
          */
