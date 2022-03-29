@@ -62,7 +62,7 @@ namespace Lsp {
         public TextEdit (Range range, string new_text, string? annotation_id = null) {
             this.range = range;
             this.new_text = new_text;
-            this.annotation_id = null;
+            this.annotation_id = annotation_id;
         }
     }
 
