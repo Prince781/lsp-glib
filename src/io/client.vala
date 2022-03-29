@@ -1,4 +1,4 @@
-/* editor.vala
+/* client.vala
  *
  * Copyright 2021 Princeton Ferro <princetonferro@gmail.com>
  *
