@@ -62,6 +62,12 @@ public abstract class Lsp.Editor : Jsonrpc.Server {
 
         try {
             switch (method) {
+                case "window/logMessage":
+                    var sm_type = expect_property (parameters, "type", VariantType.INT64, "LogMessageParams");
+                    string message = (string) expect_property (parameters, "message", VariantType.STRING, "LogMessageParams");
+                    log_message (MessageType.parse_int ((int)(int64)sm_type), message);
+                    break;
+
                 case "window/showMessage":
                     var sm_type = expect_property (parameters, "type", VariantType.INT64, "ShowMessageParams");
                     string message = (string) expect_property (parameters, "message", VariantType.STRING, "ShowMessageParams");
@@ -132,6 +138,14 @@ public abstract class Lsp.Editor : Jsonrpc.Server {
      *                configuration is set to `verbose`
      */
     public virtual signal void log_trace (string message, string? verbose);
+
+    /**
+     * Emitted when we receive a `window/logMessage` notification
+     *
+     * @param type    the message type
+     * @param message the actual message
+     */
+    public virtual signal void log_message (MessageType type, string message);
 
     /**
      * Initializes the server, if we're connected to one.

@@ -180,4 +180,18 @@ public class Lsp.Client : Object {
 
         yield client.send_notification_async ("$/logTrace", dict.end (), server.cancellable);
     }
+
+    /**
+     * The log message notification is sent from the server to the client to
+     * ask the client to log a particular message.
+     *
+     * @param type    the message type
+     * @param message the actual message
+     */
+    public async void log_message_async (MessageType type, string message) throws Error {
+        var dict = new VariantDict ();
+        dict.insert_value ("type", type);
+        dict.insert_value ("message", message);
+        yield client.send_notification_async ("window/logMessage", dict.end (), server.cancellable);
+    }
 }
