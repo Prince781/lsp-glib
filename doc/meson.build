@@ -51,7 +51,7 @@ if get_option('gi-docgen')
       'generate',
       #'--quiet',
       '--no-namespace-dir',
-      '--fatal-warnings',
+      #'--fatal-warnings',
       '--config=@INPUT0@',
       '--output-dir=@OUTPUT@',
       '--content-dir=@0@'.format(meson.current_source_dir()),
