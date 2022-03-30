@@ -78,13 +78,13 @@ namespace Lsp {
         public CompletionOptions.from_variant (Variant variant) throws DeserializeError {
             Variant? prop = null;
 
-            if ((prop = lookup_property (variant, "triggerCharacters", VariantType.STRING_ARRAY, typeof (CompletionOptions).name ())) != null)
+            if ((prop = lookup_property (variant, "triggerCharacters", VariantType.STRING_ARRAY, "CompletionOptions")) != null)
                 triggers = (string[]) prop;
 
-            if ((prop = lookup_property (variant, "allCommitCharacters", VariantType.STRING_ARRAY, typeof (CompletionOptions).name ())) != null)
+            if ((prop = lookup_property (variant, "allCommitCharacters", VariantType.STRING_ARRAY, "CompletionOptions")) != null)
                 commit_triggers = (string[]) prop;
 
-            if ((prop = lookup_property (variant, "resolveProvider", VariantType.BOOLEAN, typeof (CompletionOptions).name ())) != null)
+            if ((prop = lookup_property (variant, "resolveProvider", VariantType.BOOLEAN, "CompletionOptions")) != null)
                 supports_resolve = (bool) prop;
         }
 
@@ -125,10 +125,10 @@ namespace Lsp {
         public SignatureHelpOptions.from_variant (Variant variant) throws DeserializeError {
             Variant? prop = null;
 
-            if ((prop = lookup_property (variant, "triggerCharacters", VariantType.STRING_ARRAY, typeof (SignatureHelpOptions).name ())) != null)
+            if ((prop = lookup_property (variant, "triggerCharacters", VariantType.STRING_ARRAY, "SignatureHelpOptions")) != null)
                 triggers = (string[]) prop;
 
-            if ((prop = lookup_property (variant, "retriggerCharacters", VariantType.STRING_ARRAY, typeof (SignatureHelpOptions).name ())) != null)
+            if ((prop = lookup_property (variant, "retriggerCharacters", VariantType.STRING_ARRAY, "SignatureHelpOptions")) != null)
                 retriggers = (string[]) prop;
         }
 
@@ -173,7 +173,7 @@ namespace Lsp {
         public CodeLensOptions.from_variant (Variant variant) throws DeserializeError {
             Variant? prop = null;
 
-            if ((prop = lookup_property (variant, "resolveProvider", VariantType.BOOLEAN, typeof (CodeLensOptions).name ())) != null)
+            if ((prop = lookup_property (variant, "resolveProvider", VariantType.BOOLEAN, "CodeLensOptions")) != null)
                 supports_resolve = (bool) prop;
         }
 
@@ -215,7 +215,7 @@ namespace Lsp {
         public DocumentLinkOptions.from_variant (Variant variant) throws DeserializeError {
             Variant? prop = null;
 
-            if ((prop = lookup_property (variant, "resolveProvider", VariantType.BOOLEAN, typeof (DocumentLinkOptions).name ())) != null)
+            if ((prop = lookup_property (variant, "resolveProvider", VariantType.BOOLEAN, "DocumentLinkOptions")) != null)
                 supports_resolve = (bool) prop;
         }
 
@@ -263,10 +263,10 @@ namespace Lsp {
         public DocumentOnTypeFormattingOptions.from_variant (Variant variant) throws DeserializeError {
             Variant? prop = null;
 
-            if ((prop = lookup_property (variant, "firstTriggerCharacter", VariantType.STRING, typeof (DocumentOnTypeFormattingOptions).name ())) != null)
+            if ((prop = lookup_property (variant, "firstTriggerCharacter", VariantType.STRING, "DocumentOnTypeFormattingOptions")) != null)
                 first_trigger = (string) prop;
 
-            if ((prop = lookup_property (variant, "moreTriggerCharacters", VariantType.STRING_ARRAY, typeof (DocumentOnTypeFormattingOptions).name ())) != null)
+            if ((prop = lookup_property (variant, "moreTriggerCharacters", VariantType.STRING_ARRAY, "DocumentOnTypeFormattingOptions")) != null)
                 more_triggers = (string[]) prop;
         }
 
@@ -310,7 +310,7 @@ namespace Lsp {
         public RenameOptions.from_variant (Variant variant) throws DeserializeError {
             Variant? prop = null;
 
-            if ((prop = lookup_property (variant, "prepareProvider", VariantType.BOOLEAN, typeof (RenameOptions).name ())) != null)
+            if ((prop = lookup_property (variant, "prepareProvider", VariantType.BOOLEAN, "RenameOptions")) != null)
                 supports_prepare = (bool) prop;
         }
 
@@ -441,126 +441,126 @@ namespace Lsp {
         public ServerCaps.from_variant (Variant variant) throws DeserializeError {
             Variant? prop = null;
 
-            text_document_sync = (TextDocumentSyncKind) expect_property (variant, "textDocumentSync", VariantType.INT64, typeof (ServerCaps).name ());
+            text_document_sync = (TextDocumentSyncKind) expect_property (variant, "textDocumentSync", VariantType.INT64, "ServerCaps");
 
-            if ((prop = lookup_property (variant, "completionProvider", VariantType.VARDICT, typeof (ServerCaps).name ())) != null)
+            if ((prop = lookup_property (variant, "completionProvider", VariantType.VARDICT, "ServerCaps")) != null)
                 completion = new CompletionOptions.from_variant (prop);
 
-            if ((prop = lookup_property (variant, "hoverProvider", VariantType.ANY, typeof (ServerCaps).name ())) != null) {
+            if ((prop = lookup_property (variant, "hoverProvider", VariantType.ANY, "ServerCaps")) != null) {
                 if (prop.is_of_type (VariantType.BOOLEAN))
                     hover = (bool) prop;
                 else if (prop.is_of_type (VariantType.VARDICT))
                     hover = true;
                 else
-                    throw new DeserializeError.INVALID_TYPE ("%s.completionProvider must be a boolean or an object", typeof (ServerCaps).name ());
+                    throw new DeserializeError.INVALID_TYPE ("%s.completionProvider must be a boolean or an object", "ServerCaps");
             }
 
-            if ((prop = lookup_property (variant, "signatureHelpProvider", VariantType.VARDICT, typeof (ServerCaps).name ())) != null)
+            if ((prop = lookup_property (variant, "signatureHelpProvider", VariantType.VARDICT, "ServerCaps")) != null)
                 signature_help = new SignatureHelpOptions.from_variant (prop);
 
-            if ((prop = lookup_property (variant, "declarationProvider", VariantType.ANY, typeof (ServerCaps).name ())) != null) {
+            if ((prop = lookup_property (variant, "declarationProvider", VariantType.ANY, "ServerCaps")) != null) {
                 if (prop.is_of_type (VariantType.BOOLEAN))
                     declaration = (bool) prop;
                 else if (prop.is_of_type (VariantType.VARDICT))
                     declaration = true;
                 else
-                    throw new DeserializeError.INVALID_TYPE ("%s.declarationProvider must be a boolean or an object", typeof (ServerCaps).name ());
+                    throw new DeserializeError.INVALID_TYPE ("%s.declarationProvider must be a boolean or an object", "ServerCaps");
             }
 
-            if ((prop = lookup_property (variant, "definitionProvider", VariantType.ANY, typeof (ServerCaps).name ())) != null) {
+            if ((prop = lookup_property (variant, "definitionProvider", VariantType.ANY, "ServerCaps")) != null) {
                 if (prop.is_of_type (VariantType.BOOLEAN))
                     definition = (bool) prop;
                 else if (prop.is_of_type (VariantType.VARDICT))
                     definition = true;
                 else
-                    throw new DeserializeError.INVALID_TYPE ("%s.definitionProvider must be a boolean or an object", typeof (ServerCaps).name ());
+                    throw new DeserializeError.INVALID_TYPE ("%s.definitionProvider must be a boolean or an object", "ServerCaps");
             }
 
-            if ((prop = lookup_property (variant, "typeDefinitionProvider", VariantType.ANY, typeof (ServerCaps).name ())) != null) {
+            if ((prop = lookup_property (variant, "typeDefinitionProvider", VariantType.ANY, "ServerCaps")) != null) {
                 if (prop.is_of_type (VariantType.BOOLEAN))
                     type_definition = (bool) prop;
                 else if (prop.is_of_type (VariantType.VARDICT))
                     type_definition = true;
                 else
-                    throw new DeserializeError.INVALID_TYPE ("%s.typeDefinitionProvider must be a boolean or an object", typeof (ServerCaps).name ());
+                    throw new DeserializeError.INVALID_TYPE ("%s.typeDefinitionProvider must be a boolean or an object", "ServerCaps");
             }
 
-            if ((prop = lookup_property (variant, "implementationProvider", VariantType.ANY, typeof (ServerCaps).name ())) != null) {
+            if ((prop = lookup_property (variant, "implementationProvider", VariantType.ANY, "ServerCaps")) != null) {
                 if (prop.is_of_type (VariantType.BOOLEAN))
                     implementation = (bool) prop;
                 else if (prop.is_of_type (VariantType.VARDICT))
                     implementation = true;
                 else
-                    throw new DeserializeError.INVALID_TYPE ("%s.implementationProvider must be a boolean or an object", typeof (ServerCaps).name ());
+                    throw new DeserializeError.INVALID_TYPE ("%s.implementationProvider must be a boolean or an object", "ServerCaps");
             }
 
-            if ((prop = lookup_property (variant, "referencesProvider", VariantType.ANY, typeof (ServerCaps).name ())) != null) {
+            if ((prop = lookup_property (variant, "referencesProvider", VariantType.ANY, "ServerCaps")) != null) {
                 if (prop.is_of_type (VariantType.BOOLEAN))
                     references = (bool) prop;
                 else if (prop.is_of_type (VariantType.VARDICT))
                     references = true;
                 else
-                    throw new DeserializeError.INVALID_TYPE ("%s.referencesProvider must be a boolean or an object", typeof (ServerCaps).name ());
+                    throw new DeserializeError.INVALID_TYPE ("%s.referencesProvider must be a boolean or an object", "ServerCaps");
             }
 
-            if ((prop = lookup_property (variant, "documentHighlightProvider", VariantType.ANY, typeof (ServerCaps).name ())) != null) {
+            if ((prop = lookup_property (variant, "documentHighlightProvider", VariantType.ANY, "ServerCaps")) != null) {
                 if (prop.is_of_type (VariantType.BOOLEAN))
                     document_highlight = (bool) prop;
                 else if (prop.is_of_type (VariantType.VARDICT))
                     document_highlight = true;
                 else
-                    throw new DeserializeError.INVALID_TYPE ("%s.documentHighlightProvider must be a boolean or an object", typeof (ServerCaps).name ());
+                    throw new DeserializeError.INVALID_TYPE ("%s.documentHighlightProvider must be a boolean or an object", "ServerCaps");
             }
 
-            if ((prop = lookup_property (variant, "documentSymbolProvider", VariantType.ANY, typeof (ServerCaps).name ())) != null) {
+            if ((prop = lookup_property (variant, "documentSymbolProvider", VariantType.ANY, "ServerCaps")) != null) {
                 if (prop.is_of_type (VariantType.BOOLEAN))
                     document_symbol = (bool) prop;
                 else if (prop.is_of_type (VariantType.VARDICT))
                     document_symbol = true;
                 else
-                    throw new DeserializeError.INVALID_TYPE ("%s.documentSymbolProvider must be a boolean or an object", typeof (ServerCaps).name ());
+                    throw new DeserializeError.INVALID_TYPE ("%s.documentSymbolProvider must be a boolean or an object", "ServerCaps");
             }
 
-            if ((prop = lookup_property (variant, "codeActionProvider", VariantType.ANY, typeof (ServerCaps).name ())) != null) {
+            if ((prop = lookup_property (variant, "codeActionProvider", VariantType.ANY, "ServerCaps")) != null) {
                 if (prop.is_of_type (VariantType.BOOLEAN))
                     code_action = (bool) prop;
                 else if (prop.is_of_type (VariantType.VARDICT))
                     code_action = true;
                 else
-                    throw new DeserializeError.INVALID_TYPE ("%s.codeActionProvider must be a boolean or an object", typeof (ServerCaps).name ());
+                    throw new DeserializeError.INVALID_TYPE ("%s.codeActionProvider must be a boolean or an object", "ServerCaps");
             }
 
-            if ((prop = lookup_property (variant, "codeLensProvider", VariantType.VARDICT, typeof (ServerCaps).name ())) != null)
+            if ((prop = lookup_property (variant, "codeLensProvider", VariantType.VARDICT, "ServerCaps")) != null)
                 code_lens = new CodeLensOptions.from_variant (prop);
 
-            if ((prop = lookup_property (variant, "documentLinkProvider", VariantType.VARDICT, typeof (ServerCaps).name ())) != null)
+            if ((prop = lookup_property (variant, "documentLinkProvider", VariantType.VARDICT, "ServerCaps")) != null)
                 document_link = new DocumentLinkOptions.from_variant (prop);
 
-            if ((prop = lookup_property (variant, "documentFormattingProvider", VariantType.ANY, typeof (ServerCaps).name ())) != null) {
+            if ((prop = lookup_property (variant, "documentFormattingProvider", VariantType.ANY, "ServerCaps")) != null) {
                 if (prop.is_of_type (VariantType.BOOLEAN))
                     document_formatting = (bool) prop;
                 else if (prop.is_of_type (VariantType.VARDICT))
                     document_formatting = true;
                 else
-                    throw new DeserializeError.INVALID_TYPE ("%s.documentFormattingProvider must be a boolean or an object", typeof (ServerCaps).name ());
+                    throw new DeserializeError.INVALID_TYPE ("%s.documentFormattingProvider must be a boolean or an object", "ServerCaps");
             }
 
-            if ((prop = lookup_property (variant, "documentRangeFormattingProvider", VariantType.ANY, typeof (ServerCaps).name ())) != null) {
+            if ((prop = lookup_property (variant, "documentRangeFormattingProvider", VariantType.ANY, "ServerCaps")) != null) {
                 if (prop.is_of_type (VariantType.BOOLEAN))
                     document_range_formatting = (bool) prop;
                 else if (prop.is_of_type (VariantType.VARDICT))
                     document_range_formatting = true;
                 else
-                    throw new DeserializeError.INVALID_TYPE ("%s.documentRangeFormattingProvider must be a boolean or an object", typeof (ServerCaps).name ());
+                    throw new DeserializeError.INVALID_TYPE ("%s.documentRangeFormattingProvider must be a boolean or an object", "ServerCaps");
             }
 
-            if ((prop = lookup_property (variant, "documentOnTypeFormattingProvider", VariantType.VARDICT, typeof (ServerCaps).name ())) != null)
+            if ((prop = lookup_property (variant, "documentOnTypeFormattingProvider", VariantType.VARDICT, "ServerCaps")) != null)
                 document_on_type_formatting = new DocumentOnTypeFormattingOptions.from_variant (prop);
 
-            if ((prop = lookup_property (variant, "renameProvider", VariantType.VARDICT, typeof (ServerCaps).name ())) != null)
+            if ((prop = lookup_property (variant, "renameProvider", VariantType.VARDICT, "ServerCaps")) != null)
                 rename = new RenameOptions.from_variant (prop);
 
-            if ((prop = lookup_property (variant, "workspaceSymbolProvider", VariantType.BOOLEAN, typeof (ServerCaps).name ())) != null)
+            if ((prop = lookup_property (variant, "workspaceSymbolProvider", VariantType.BOOLEAN, "ServerCaps")) != null)
                 workspace_symbol = (bool) prop;
         }
         
