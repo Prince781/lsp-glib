@@ -203,6 +203,57 @@ public abstract class Lsp.Editor : Jsonrpc.Server {
     }
 
     /**
+     * The document change notification is sent from the client to the server
+     * to signal changes to a text document. Before a client can change a text
+     * document it must claim ownership of its content using the
+     * `textDocument/didOpen` notification (see {@link
+     * open_text_document_async}). In 2.0 the shape of the params has changed
+     * to include proper version numbers.
+     *
+     * @param uri             the URI of the document that has been modified
+     * @param version         the version numebr points to the version after all
+     *                        provided content changes have been applied
+     * @param content_changes the actual content changes. The content changes describe single state
+     *                        changes to the document. So if there are two content changes c1 (at
+     *                        array index 0) and c2 (at array index 1) for a document in state S then
+     *                        c1 moves the document from S to S2 and c2 from S2 to S3. So c1 is
+     *                        computed on the state S and c2 is computed on the state S2.
+     *                        To mirror the content of a document using change events use the following
+     *                        approach:
+     *                        * start with the same initial content
+     *                        * apply the 'textDocument/didChange' notifications in the order you
+     *                          receive them.
+     *                        * apply the `TextDocumentContentChangeEvent`s in a single notification
+     *                          in the order you receive them.
+     */
+    public async void edit_text_document_async (Uri uri, int64 version, (unowned TextDocumentContentChangeEvent)[] content_changes) throws Error {
+        if (client == null)
+            throw new Lsp.ProtocolError.NO_CONNECTION ("not connected to a client");
+        if (init_result == null)
+            throw new Lsp.ProtocolError.CLIENT_NOT_INITIALIZED ("client not initialized");
+
+        if (!text_documents.contains (uri))
+            return;     // the document is not open
+
+        var text_document = text_documents[uri];
+        if (version <= text_document.version)
+            return;     // discard stale changes
+
+        var parameters = new VariantDict ();
+        Variant[] content_changes_list = {};
+        foreach (var content_change in content_changes) {
+            content_changes_list += content_change.to_variant ();
+        }
+        parameters.insert_value ("textDocument", TextDocumentIdentifier (text_document.uri, version).to_variant ());
+        parameters.insert_value ("contentChanges", content_changes_list);
+
+        yield client.send_notification_async ("textDocument/didChange", parameters.end (), cancellable);
+
+        if (version > text_document.version)
+            text_document.version = version;
+    }
+
+    /**
      * Closes a file, sending the `textDocument/didClose` message to the
      * language server. If the file is not open, this does nothing.
      */

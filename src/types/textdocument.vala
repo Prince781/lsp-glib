@@ -447,6 +447,14 @@ namespace Lsp {
             this.text = text;
         }
 
+        public Variant to_variant () {
+            var dict = new VariantDict ();
+            if (range != null)
+                dict.insert_value ("range", range.to_variant ());
+            dict.insert_value ("text", text);
+            return dict.end ();
+        }
+
         public TextDocumentContentChangeEvent.from_variant (Variant dict) throws DeserializeError {
             Variant? prop = null;
             if ((prop = lookup_property (dict, "range", VariantType.VARDICT, typeof (TextDocumentContentChangeEvent).name ())) != null)
