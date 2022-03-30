@@ -47,7 +47,7 @@ public class Lsp.Client : Object {
     }
 
     /**
-     * The ask message request allows to pass actions and to wait for an answer
+     * The show message request allows to pass actions and to wait for an answer
      * from the client.
      *
      * @param actions   The list of actions the user can select, like 'Ok',
@@ -68,7 +68,7 @@ public class Lsp.Client : Object {
         dict.insert_value ("actions", new Variant.array (VariantType.VARDICT, actions_list));
 
         Variant? return_value;
-        yield client.call_async ("window/showMessage", dict.end (), server.cancellable, out return_value);
+        yield client.call_async ("window/showMessageRequest", dict.end (), server.cancellable, out return_value);
 
         if (return_value == null)
             return null;
