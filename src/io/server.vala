@@ -59,7 +59,7 @@ public abstract class Lsp.Server : Jsonrpc.Server {
         if (is_shutting_down && method != "exit")
             return;
 
-        var lsp_client = new Editor (this, client);
+        var lsp_client = new Client (this, client);
         try {
             switch (method) {
                 case "exit":
@@ -121,7 +121,7 @@ public abstract class Lsp.Server : Jsonrpc.Server {
                 return;
             }
 
-            var lsp_client = new Editor (this, client);
+            var lsp_client = new Client (this, client);
             switch (method) {
                 case "initialize":
                     var init_params = new InitializeParams.from_variant (parameters);
@@ -181,7 +181,7 @@ public abstract class Lsp.Server : Jsonrpc.Server {
      *
      * The initialize request may only be sent once. 
      */
-    protected abstract async InitializeResult initialize_async (Editor editor, InitializeParams init_params) throws Error;
+    protected abstract async InitializeResult initialize_async (Client client, InitializeParams init_params) throws Error;
 
     /**
      * The initialized notification is sent from the client to the server after
@@ -192,7 +192,7 @@ public abstract class Lsp.Server : Jsonrpc.Server {
      * dynamically register capabilities. The initialized notification may only
      * be sent once.
      */
-    protected virtual async void on_initialized_async (Editor editor) throws Error {
+    protected virtual async void on_initialized_async (Client client) throws Error {
         // do nothing
     }
 
@@ -210,7 +210,7 @@ public abstract class Lsp.Server : Jsonrpc.Server {
      * ability to fulfill requests is independent of whether a text document is
      * open or closed.
      */
-    protected abstract async void on_text_document_did_open_async (Editor editor, TextDocumentItem text_document) throws Error;
+    protected abstract async void on_text_document_did_open_async (Client client, TextDocumentItem text_document) throws Error;
 
     /**
      * The document change notification is sent from the client to the server to
@@ -232,7 +232,7 @@ public abstract class Lsp.Server : Jsonrpc.Server {
      *                          - apply the `TextDocumentContentChangeEvent`s in a single notification
      *                            in the order you receive them.
      */
-    protected abstract async void on_text_document_did_change_async (Editor editor, TextDocumentIdentifier text_document,
+    protected abstract async void on_text_document_did_change_async (Client client, TextDocumentIdentifier text_document,
                                                                      (unowned TextDocumentContentChangeEvent)[] content_changes) throws Error;
     
     /**
@@ -243,7 +243,7 @@ public abstract class Lsp.Server : Jsonrpc.Server {
      * @param text              The content when saved. Depends on whether the
      *                          server has opted to receive this.
      */
-    protected virtual async void on_text_document_did_save_async (Editor editor, TextDocumentIdentifier text_document,
+    protected virtual async void on_text_document_did_save_async (Client client, TextDocumentIdentifier text_document,
                                                                   string? text) throws Error {
         // do nothing
     }
@@ -263,7 +263,7 @@ public abstract class Lsp.Server : Jsonrpc.Server {
      *
      * @param text_document     The document that was closed.
      */
-    protected abstract async void on_text_document_did_close_async (Editor editor, TextDocumentIdentifier text_document) throws Error;
+    protected abstract async void on_text_document_did_close_async (Client client, TextDocumentIdentifier text_document) throws Error;
 
     /**
      * The shutdown request is sent from the client to the server. It asks
@@ -279,7 +279,7 @@ public abstract class Lsp.Server : Jsonrpc.Server {
      * The server will error with {@link Jsonrpc.ClientError.INVALID_REQUEST} if
      * it receives any requests after a shutdown request.
      */
-    protected abstract async void shutdown_async (Editor editor) throws Error;
+    protected abstract async void shutdown_async (Client client) throws Error;
 
     public virtual void exit () {
         loop.quit ();

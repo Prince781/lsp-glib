@@ -1,4 +1,4 @@
-/* client.vala
+/* editor.vala
  *
  * Copyright 2021 Princeton Ferro <princetonferro@gmail.com>
  *
@@ -19,157 +19,142 @@
  */
 
 /**
- * A JSON-RPC server implementing the client side of the Language Server
- * Protocol.
+ * The JSON-RPC client. Exposes methods and notifications that should be called
+ * from server code. If you want to ''implement'' a LSP editor, use {@link
+ * Lsp.Editor}.
+ * 
+ * This is a wrapper over {@link Jsonrpc.Client} that supports LSP-specific
+ * operations, and is created internally by {@link Lsp.Server}.
  */
-public abstract class Lsp.Client : Jsonrpc.Server {
-    Jsonrpc.Client? client;
+public class Lsp.Client : Object {
+    Lsp.Server server;
+    Jsonrpc.Client client;
 
-    /**
-     * Whether we've exited the server.
-     */
-    bool exited;
-
-    public Cancellable cancellable { get; private set; }
-
-    /**
-     * The initialization info we got from the language server.
-     */
-    public InitializeResult? init_result { get; private set; }
-
-    public HashTable<Uri, TextDocumentItem> text_documents { get; private set; }
-
-    protected Client () {
-        this.cancellable = new Cancellable ();
-        this.text_documents = new HashTable<Uri, TextDocumentItem> (uri_hash, uri_equal);
-        this.notification.connect (notification_async);
-        this.handle_call.connect ((client, method, id, parameters) => {
-            handle_call_async.begin (client, method, id, parameters);
-            return !exited;
-        });
+    internal Client (Server server, Jsonrpc.Client client) {
+        this.server = server;
+        this.client = client;
     }
 
-    private async void notification_async (Jsonrpc.Client client, string method, Variant parameters) {
-        if (exited)
-            return;
+    /**
+     * The show message notification is sent from a server to a client to ask
+     * the client to display a particular message in the user interface.
+     */
+    public async void show_message_async (MessageType type, string message) throws Error {
+        var dict = new VariantDict ();
+        dict.insert_value ("type", type);
+        dict.insert_value ("message", message);
+        yield client.send_notification_async ("window/showMessage", dict.end (), server.cancellable);
+    }
 
-        try {
-            switch (method) {
-                case "window/showMessage":
-                    var sm_type = expect_property (parameters, "type", VariantType.INT64, "ShowMessageParams");
-                    string message = (string) expect_property (parameters, "message", VariantType.STRING, "ShowMessageParams");
-                    yield on_show_message_async (MessageType.parse_int ((int)(int64)sm_type), message);
-                    break;
-
-                case "textDocument/publishDiagnostics":
-                    var pd_uri = expect_property (parameters, "uri", VariantType.STRING, "PublishDiagnosticsParams");
-                    var pd_version = lookup_property (parameters, "version", VariantType.INT64, "PublishDiagnosticsParams");
-                    int64? version = pd_version != null ? (int64?)pd_version : null;
-                    Diagnostic[] diags = {};
-                    foreach (var diag in expect_property (parameters, "diagnostics", VariantType.ARRAY, "PublishDiagnosticsParams"))
-                        diags += new Diagnostic.from_variant (diag);
-                    yield on_publish_diagnostics_async (Uri.parse ((string)pd_uri, UriFlags.NONE), version, diags);
-                    break;
-            }
-        } catch (Error e) {
-            warning ("handling notification failed - %s", e.message);
+    /**
+     * The ask message request allows to pass actions and to wait for an answer
+     * from the client.
+     *
+     * @param actions   The list of actions the user can select, like 'Ok',
+     *                  'Cancel', 'Build', etc. Can be `null` if you just want to wait for a
+     *                  response from the editor after showing a message.
+     * @return          The action selected in the editor or `null` if no actions were provided.
+     */
+    public async MessageActionItem? ask_message_async (MessageType type, string message,
+                                                       (unowned MessageActionItem)[]? actions = null) throws Error {
+        var dict = new VariantDict ();
+        dict.insert_value ("type", type);
+        dict.insert_value ("message", message);
+        Variant[] actions_list = {};
+        if (actions != null) {
+            foreach (var action in actions)
+                actions_list += action.to_variant ();
         }
-    }
-
-    private async void handle_call_async (Jsonrpc.Client client, string method, Variant id, Variant parameters) {
-        if (exited)
-            return;
-    }
-
-    protected override void client_accepted (Jsonrpc.Client client) {
-        if (this.client == null)
-            this.client = client;
-    }
-
-    /**
-     * Handles the `window/showMessage` notification
-     */
-    protected virtual async void on_show_message_async (MessageType type, string message) throws Error {
-        // do nothing
-    }
-
-    /**
-     * Handles the `textDocument/publishDiagnostics` notification
-     */
-    protected virtual async void on_publish_diagnostics_async (Uri uri, int64? version, Diagnostic[] diagnostics) throws Error {
-        // do nothing
-    }
-
-    /**
-     * Initializes the server, if we're connected to one.
-     * 
-     * @see Lsp.Server.initialize_async
-     */
-    public async void initialize_async (WorkspaceFolder primary_workspace,
-                                        (unowned WorkspaceFolder)[]? secondary_workspaces = null) throws Error {
-        if (client == null)
-            throw new Lsp.ProtocolError.NO_CONNECTION ("not connected to a client");
-        var init_params = new InitializeParams (primary_workspace, secondary_workspaces);
+        dict.insert_value ("actions", new Variant.array (VariantType.VARDICT, actions_list));
 
         Variant? return_value;
-        yield client.call_async ("initialize", init_params.to_variant (), cancellable, out return_value);
-        
-        if (return_value == null)
-            throw new DeserializeError.INVALID_TYPE ("expected non-null return value from `initialize`");
+        yield client.call_async ("window/showMessage", dict.end (), server.cancellable, out return_value);
 
-        init_result = new InitializeResult.from_variant (return_value);
+        if (return_value == null)
+            return null;
+        
+        return MessageActionItem.from_variant (return_value);
     }
 
     /**
-     * Opens a file, sending the `textDocument/didOpen` message to the language
-     * server. If the file is already open, this does nothing.
+     * The show document request is sent from a server to a client to ask the
+     * client to display a particular document in the user interface.
      *
-     * @param text  if non-null, this means that `uri` is associated with an
-     *              in-memory buffer `text`
+     * @param uri           The document URI to show.
+     * @param external      Indicates to show the resource in an external program.
+     *                      To show for example [[https://vala-project.org]] in the 
+     *                      default web browser set this to `true`.
+     * @param take_focus    Indicates whether the editor showing the document should
+     *                      take focus or not. Clients might ignore this property if
+     *                      an external program is started.
+     * @param selection     An optional selection range if the document is a text 
+     *                      document. Clients might ignore the property if an external
+     *                      program is started or the file is not a text file.
+     * @return              `true` if the show was successful, `false` otherwise
+     *
+     * @since 3.16.0
      */
-    public async void open_text_document_async (Uri uri, LanguageId language_id, string? text = null) throws Error {
-        if (client == null)
-            throw new Lsp.ProtocolError.NO_CONNECTION ("not connected to a client");
-
-        if (text_documents.contains (uri))
-            return;     // the document is already open
-
-        bool in_memory = true;
-        if (text == null) {
-            var file = File.new_for_uri (uri.to_string ());
-            var bytes = yield file.load_bytes_async (cancellable, null);
-            text = (string?)bytes.get_data ();  // null means the file was empty
-            in_memory = false;
+    public async bool show_document_async (Uri uri, bool external = false,
+                                           bool take_focus = false, Range? selection = null) throws Error {
+        var dict = new VariantDict ();
+        dict.insert_value ("uri", uri.to_string ());
+        dict.insert_value ("external", external);
+        dict.insert_value ("takeFocus", take_focus);
+        if (selection != null) {
+            dict.insert_value ("selection", selection.to_variant ());
         }
 
-        var text_document = new TextDocumentItem (uri, language_id, 1, text ?? "");
-        text_document.state = in_memory ? TextDocumentItem.State.IN_MEMORY : TextDocumentItem.State.UNMODIFIED;
+        Variant? return_value;
+        yield client.call_async ("window/showDocument", dict.end (), server.cancellable, out return_value);
 
-        var parameters = new VariantDict ();
-        parameters.insert_value ("textDocument", text_document.to_variant ());
-
-        yield client.send_notification_async ("textDocument/didOpen", parameters.end (), cancellable);
-
-        text_documents[uri] = text_document;
+        if (return_value == null || !return_value.is_of_type (VariantType.BOOLEAN))
+            throw new DeserializeError.INVALID_TYPE ("expected boolean success result from window/showDocument");
+        
+        return (bool)return_value;
     }
 
     /**
-     * Closes a file, sending the `textDocument/didClose` message to the
-     * language server. If the file is not open, this does nothing.
+     * Diagnostics notifications are sent from the server to the client to signal
+     * results of validation runs.
+     *
+     * Diagnostics are “owned” by the server so it is the server’s responsibility
+     * to clear them if necessary. The following rule is used for VS Code servers
+     * that generate diagnostics:
+     * 
+     *  * if a language is single file only (for example HTML) then diagnostics
+     *    are cleared by the server when the file is closed. Please note that open
+     *    / close events don’t necessarily reflect what the user sees in the user
+     *    interface. These events are ownership events. So with the current version
+     *    of the specification it is possible that problems are not cleared
+     *    although the file is not visible in the user interface since the client
+     *    has not closed the file yet.
+     *
+     *  * if a language has a project system (for example C#) diagnostics are not
+     *    cleared when a file closes. When a project is opened all diagnostics for
+     *    all files are recomputed (or read from a cache).
+     *
+     * When a file changes it is the server’s responsibility to re-compute
+     * diagnostics and push them to the client. If the computed set is empty it
+     * has to push the empty array to clear former diagnostics. Newly pushed
+     * diagnostics always replace previously pushed diagnostics. There is no
+     * merging that happens on the client side.
+     *
+     * @param uri           The URI for which diagnostic information is reported.
+     * @param diagnostics   An array of diagnostic information. Pass in `null`
+     *                      to clear diagnostics.
+     * @param version       The version number of the document the diagnostics
+     *                      are published for.
      */
-    public async void close_text_document_async (Uri uri) throws Error {
-        if (client == null)
-            throw new Lsp.ProtocolError.NO_CONNECTION ("not connected to a client");
+    public async void publish_diagnostics_async (Uri uri, (unowned Diagnostic)[]? diagnostics, int64? version = null) throws Error {
+        var dict = new VariantDict ();
+        dict.insert_value ("uri", uri.to_string ());
+        Variant[] diagnostics_list = {};
+        if (diagnostics != null) {
+            foreach (var diagnostic in diagnostics)
+                diagnostics_list += diagnostic.to_variant ();
+        }
+        dict.insert_value ("diagnostics", new Variant.array (VariantType.VARDICT, diagnostics_list));
 
-        if (!text_documents.contains (uri))
-            return;     // the document is not open
-
-        var text_document = text_documents[uri];
-        var parameters = new VariantDict ();
-        parameters.insert_value ("textDocument", TextDocumentIdentifier (text_document.uri, text_document.version).to_variant ());
-
-        yield client.send_notification_async ("textDocument/didClose", parameters.end (), cancellable);
-
-        text_documents.remove (uri);
+        yield client.send_notification_async ("textDocument/publishDiagnostics", dict.end (), server.cancellable);
     }
 }
