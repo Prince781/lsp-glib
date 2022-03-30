@@ -102,10 +102,14 @@ namespace Lsp {
 
     [Flags]
     public enum CompletionItemTag {
-        NONE,
+        NONE       = 0,
         DEPRECATED
     }
 
+    /**
+     * A completion item is an option in a list of completions generated when
+     * calling `textDocument/completion`.
+     */
     [Compact (opaque = true)]
     [CCode (ref_function = "lsp_completion_item_ref", unref_function = "lsp_completion_item_unref")]
     public class CompletionItem {
@@ -125,9 +129,9 @@ namespace Lsp {
 
         public string label { get; set; }
 
-        public CompletionItemKind kind { get; set; }
+        public CompletionItemKind kind { get; set; default = UNSET; }
 
-        public CompletionItemTag tags { get; set; }
+        public CompletionItemTag tags { get; set; default = NONE; }
 
         public string? detail { get; set; }
 
@@ -199,7 +203,7 @@ namespace Lsp {
          * current cursor position (for example adding an import statement at the
          * top of the file if the completion item will insert an unqualified type).
          */
-        public TextEdit[]? additional_text_edits { get; owned set; }
+        public TextEdit[]? additional_text_edits { get; set; }
 
         /**
          * An optional set of characters that when pressed while this completion is
@@ -221,5 +225,17 @@ namespace Lsp {
          * a completion and a completion resolve request.
          */
         public Variant? data { get; set; }
+
+        /**
+         * Creates a new completion item with a label.
+         *
+         * @param label the string displayed for this completion item
+         * @param kind  the type of completion item, or use {@link
+         *              CompletionItemKind.UNSET} for a default
+         */
+        public CompletionItem (string label, CompletionItemKind kind = UNSET) {
+            this.label = label;
+            this.kind = kind;
+        }
     }
 }
