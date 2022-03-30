@@ -57,7 +57,7 @@ public abstract class Lsp.Editor : Jsonrpc.Server {
     }
 
     protected override void notification (Jsonrpc.Client client, string method, Variant parameters) {
-        if (exited)
+        if (exited || init_result == null)
             return;
 
         try {
@@ -96,8 +96,14 @@ public abstract class Lsp.Editor : Jsonrpc.Server {
     }
 
     protected override void client_accepted (Jsonrpc.Client client) {
-        if (this.client == null)
-            this.client = client;
+        if (this.client != client)
+            init_result = null;         // reset init_result with a new client
+        this.client = client;
+    }
+
+    protected override void client_closed (Jsonrpc.Client client) {
+        this.init_result = null;
+        this.client = null;
     }
 
     /**
@@ -157,6 +163,8 @@ public abstract class Lsp.Editor : Jsonrpc.Server {
     public async void open_text_document_async (Uri uri, LanguageId language_id, string? text = null) throws Error {
         if (client == null)
             throw new Lsp.ProtocolError.NO_CONNECTION ("not connected to a client");
+        if (init_result == null)
+            throw new Lsp.ProtocolError.CLIENT_NOT_INITIALIZED ("client not initialized");
 
         if (text_documents.contains (uri))
             return;     // the document is already open
@@ -187,6 +195,8 @@ public abstract class Lsp.Editor : Jsonrpc.Server {
     public async void close_text_document_async (Uri uri) throws Error {
         if (client == null)
             throw new Lsp.ProtocolError.NO_CONNECTION ("not connected to a client");
+        if (init_result == null)
+            throw new Lsp.ProtocolError.CLIENT_NOT_INITIALIZED ("client not initialized");
 
         if (!text_documents.contains (uri))
             return;     // the document is not open
@@ -207,6 +217,8 @@ public abstract class Lsp.Editor : Jsonrpc.Server {
     public async void set_trace_async (TraceValue trace_value) throws Error {
         if (client == null)
             throw new Lsp.ProtocolError.NO_CONNECTION ("not connected to a client");
+        if (init_result == null)
+            throw new Lsp.ProtocolError.CLIENT_NOT_INITIALIZED ("client not initialized");
 
         var parameters = new VariantDict ();
         parameters.insert_value ("value", trace_value.to_string ());
