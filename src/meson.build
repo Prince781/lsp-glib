@@ -22,6 +22,7 @@ sources = [version_file] + files([
   'types/servercapabilities.vala',
   'types/textdocument.vala',
   'types/textedit.vala',
+  'types/trace.vala',
   'types/workspace.vala',
   'types/workspaceedit.vala',
   'library.vala'

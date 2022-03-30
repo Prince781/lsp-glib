@@ -21,6 +21,9 @@
 /**
  * A JSON-RPC server implementing the client side of the Language Server
  * Protocol.
+ *
+ * This API is intended for GUIs, which is why incoming LSP notifications have
+ * synchronous event handlers rather than virtual async methods.
  */
 public abstract class Lsp.Editor : Jsonrpc.Server {
     Jsonrpc.Client? client;
@@ -29,6 +32,11 @@ public abstract class Lsp.Editor : Jsonrpc.Server {
      * Whether we've exited the server.
      */
     bool exited;
+
+    /**
+     * The trace configuration, synchronized with the language server.
+     */
+    public TraceValue trace_value { get; private set; default = OFF; }
 
     public Cancellable cancellable { get; private set; }
 
@@ -42,14 +50,13 @@ public abstract class Lsp.Editor : Jsonrpc.Server {
     protected Editor () {
         this.cancellable = new Cancellable ();
         this.text_documents = new HashTable<Uri, TextDocumentItem> (uri_hash, uri_equal);
-        this.notification.connect (notification_async);
         this.handle_call.connect ((client, method, id, parameters) => {
             handle_call_async.begin (client, method, id, parameters);
             return !exited;
         });
     }
 
-    private async void notification_async (Jsonrpc.Client client, string method, Variant parameters) {
+    protected override void notification (Jsonrpc.Client client, string method, Variant parameters) {
         if (exited)
             return;
 
@@ -58,7 +65,7 @@ public abstract class Lsp.Editor : Jsonrpc.Server {
                 case "window/showMessage":
                     var sm_type = expect_property (parameters, "type", VariantType.INT64, "ShowMessageParams");
                     string message = (string) expect_property (parameters, "message", VariantType.STRING, "ShowMessageParams");
-                    yield on_show_message_async (MessageType.parse_int ((int)(int64)sm_type), message);
+                    show_message (MessageType.parse_int ((int)(int64)sm_type), message);
                     break;
 
                 case "textDocument/publishDiagnostics":
@@ -68,7 +75,14 @@ public abstract class Lsp.Editor : Jsonrpc.Server {
                     Diagnostic[] diags = {};
                     foreach (var diag in expect_property (parameters, "diagnostics", VariantType.ARRAY, "PublishDiagnosticsParams"))
                         diags += new Diagnostic.from_variant (diag);
-                    yield on_publish_diagnostics_async (Uri.parse ((string)pd_uri, UriFlags.NONE), version, diags);
+                    publish_diagnostics (Uri.parse ((string)pd_uri, UriFlags.NONE), version, diags);
+                    break;
+
+                case "$/logTrace":
+                    var message = (string) expect_property (parameters, "message", VariantType.STRING, "LogTraceParams");
+                    var lt_verbose = lookup_property (parameters, "verbose", VariantType.STRING, "LogTraceParams");
+                    string? verbose = lt_verbose != null ? (string?)lt_verbose : null;
+                    log_trace (message, verbose);
                     break;
             }
         } catch (Error e) {
@@ -87,18 +101,31 @@ public abstract class Lsp.Editor : Jsonrpc.Server {
     }
 
     /**
-     * Handles the `window/showMessage` notification
+     * Emitted when we receive a `window/showMessage` notification
+     *
+     * @param type    the message type
+     * @param message the actual message
      */
-    protected virtual async void on_show_message_async (MessageType type, string message) throws Error {
-        // do nothing
-    }
+    public virtual signal void show_message (MessageType type, string message);
 
     /**
-     * Handles the `textDocument/publishDiagnostics` notification
+     * Emitted when we receive a `textDocument/publishDiagnostics` notification
+     *
+     * @param uri         the URI for which diagnostic information is reported
+     * @param version     (optional, since 3.15.0) the version number of the
+     *                    document the diagnostics are published for
+     * @param diagnostics an array of diagnostic information items
      */
-    protected virtual async void on_publish_diagnostics_async (Uri uri, int64? version, Diagnostic[] diagnostics) throws Error {
-        // do nothing
-    }
+    public virtual signal void publish_diagnostics (Uri uri, int64? version, Diagnostic[] diagnostics);
+
+    /**
+     * Emitted when we receive a `$/logTrace` notification
+     *
+     * @param message the message to be logged
+     * @param verbose additional information that can be computed if the trace
+     *                configuration is set to `verbose`
+     */
+    public virtual signal void log_trace (string message, string? verbose);
 
     /**
      * Initializes the server, if we're connected to one.
@@ -171,5 +198,20 @@ public abstract class Lsp.Editor : Jsonrpc.Server {
         yield client.send_notification_async ("textDocument/didClose", parameters.end (), cancellable);
 
         text_documents.remove (uri);
+    }
+
+    /**
+     * A notification that should be used by the client to modify the trace
+     * setting of the server.
+     */
+    public async void set_trace_async (TraceValue trace_value) throws Error {
+        if (client == null)
+            throw new Lsp.ProtocolError.NO_CONNECTION ("not connected to a client");
+
+        var parameters = new VariantDict ();
+        parameters.insert_value ("value", trace_value.to_string ());
+
+        yield client.send_notification_async ("$/setTrace", parameters.end (), cancellable);
+        this.trace_value = trace_value;         // synchronize on success
     }
 }

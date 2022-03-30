@@ -35,6 +35,11 @@ public abstract class Lsp.Server : Jsonrpc.Server {
      */
     bool exited;
 
+    /**
+     * How we should log trace messages to the client.
+     */
+    public TraceValue trace_value { get; private set; default = OFF; }
+
     public Cancellable cancellable { get; private set; default = new Cancellable (); }
 
     /**
@@ -98,6 +103,11 @@ public abstract class Lsp.Server : Jsonrpc.Server {
                     var text_variant = lookup_property (parameters, "text", VariantType.STRING, "DidSaveTextDocumentParams");
                     string? text = text_variant != null ? (string) text_variant : null;
                     yield on_text_document_did_save_async (lsp_client, TextDocumentIdentifier.from_variant (tdi_variant), text);
+                    break;
+
+                case "$/setTrace":
+                    var st_value = (string) expect_property (parameters, "value", VariantType.STRING, "SetTraceParams");
+                    trace_value = TraceValue.parse_string (st_value);
                     break;
 
                 default:

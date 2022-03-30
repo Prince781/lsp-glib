@@ -157,4 +157,27 @@ public class Lsp.Client : Object {
 
         yield client.send_notification_async ("textDocument/publishDiagnostics", dict.end (), server.cancellable);
     }
+
+    /**
+     * A notification to log the trace of the server’s execution. The amount and
+     * content of these notifications depends on the current `trace` configuration. If
+     * `trace` is 'off', the server should not send any logTrace notification. If `trace`
+     * is 'messages', the server should not add the 'verbose' field in the
+     * `LogTraceParams`.
+
+     * `$/logTrace` should be used for systematic trace reporting. For single debugging
+     * messages, the server should send `window/logMessage` notifications.
+     *
+     * @param message the message to be logged
+     * @param verbose additional information that can be computed if the
+     *                `trace` configuration is set to `verbose`
+     */
+    public async void log_trace_async (string message, string? verbose = null) throws Error {
+        var dict = new VariantDict ();
+        dict.insert_value ("message", message);
+        if (verbose != null)
+            dict.insert_value ("verbose", verbose);
+
+        yield client.send_notification_async ("$/logTrace", dict.end (), server.cancellable);
+    }
 }
