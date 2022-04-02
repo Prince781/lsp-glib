@@ -25,7 +25,7 @@
  * This API is intended for GUIs, which is why incoming LSP notifications have
  * synchronous event handlers rather than virtual async methods.
  */
-public abstract class Lsp.Editor : Jsonrpc.Server {
+public class Lsp.Editor : Jsonrpc.Server {
     Jsonrpc.Client? client;
 
     /**
@@ -47,7 +47,7 @@ public abstract class Lsp.Editor : Jsonrpc.Server {
 
     public HashTable<Uri, TextDocumentItem> text_documents { get; private set; }
 
-    protected Editor () {
+    public Editor () {
         this.cancellable = new Cancellable ();
         this.text_documents = new HashTable<Uri, TextDocumentItem> (uri_hash, uri_equal);
         this.handle_call.connect ((client, method, id, parameters) => {
