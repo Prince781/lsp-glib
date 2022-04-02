@@ -1,6 +1,6 @@
 /* command.vala
  *
- * Copyright 2021 Princeton Ferro <princetonferro@gmail.com>
+ * Copyright 2021-2022 Princeton Ferro <princetonferro@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,8 +20,28 @@
 
 namespace Lsp {
     /**
+     * A generic action that can be performed, such as a command or a
+     * refactoring. This is more generic than {@link Lsp.ResourceOperation}.
+     */
+    public abstract class Action {
+        /**
+         * Title of the command or action, like `save` or `organize imports`.
+         */
+        public string title { get; set; }
+
+        protected Action (string title) {
+            this.title = title;
+        }
+
+        /**
+         * Serialize this action to a {@link GLib.Variant}
+         */
+        public abstract Variant to_variant ();
+    }
+
+    /**
      * Represents a reference to a command.
-     * 
+     *
      * Provides a title which will be used to represent a command in the UI.
      * Commands are identified by a string identifier. The recommended way to
      * handle commands is to implement their execution on the server side if
@@ -29,28 +49,7 @@ namespace Lsp {
      * Alternatively the tool extension code could handle the command. The
      * protocol currently doesn’t specify a set of well-known commands.
      */
-    [Compact (opaque=true)]
-    [CCode (ref_function = "lsp_command_ref", unref_function = "lsp_command_unref")]
-    public class Command {
-        private int ref_count = 1;
-
-        public unowned Command ref () {
-            AtomicInt.add (ref this.ref_count, 1);
-            return this;
-        }
-
-        public void unref () {
-            if (AtomicInt.dec_and_test (ref this.ref_count))
-                this.free ();
-        }
-
-        private extern void free ();
-
-        /**
-         * Title of the command, like `save`.
-         */
-        public string title { get; set; }
-
+    public class Command : Action {
         /**
          * The identifier of the actual command handler.
          */
@@ -61,10 +60,39 @@ namespace Lsp {
          */
         public Variant[]? arguments { get; set; }
 
+        /**
+         * Creates a new {@link Lsp.Command}
+         *
+         * {@inheritDoc}
+         */
         public Command (string title, string command, Variant[]? arguments = null) {
-            this.title = title;
+            base (title);
             this.command = command;
             this.arguments = arguments;
+        }
+
+        public Command.from_variant (Variant variant) throws DeserializeError {
+            base ((string) expect_property (variant, "title", VariantType.STRING, "LspCommand"));
+            this.command = (string) expect_property (variant, "command", VariantType.STRING, "LspCommand");
+            Variant? prop = lookup_property (variant, "arguments", VariantType.ARRAY, "LspCommand");
+            if (prop != null) {
+                Variant[] arguments = {};
+                foreach (var varg in prop)
+                    arguments += varg;
+                if (arguments.length > 0)
+                    this.arguments = arguments;
+            }
+        }
+
+        public override Variant to_variant () {
+            var variant = new VariantDict ();
+
+            variant.insert_value ("title", title);
+            variant.insert_value ("command", command);
+            if (arguments != null)
+                variant.insert_value ("arguments", arguments);
+
+            return variant.end ();
         }
     }
 }

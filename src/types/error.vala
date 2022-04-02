@@ -7,5 +7,10 @@ public errordomain Lsp.ProtocolError {
     /**
      * Client not initialized.
      */
-    CLIENT_NOT_INITIALIZED 
+    CLIENT_NOT_INITIALIZED,
+
+    /**
+     * The requested method is not implemented
+     */
+    METHOD_NOT_IMPLEMENTED
 }

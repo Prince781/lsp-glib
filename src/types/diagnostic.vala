@@ -24,7 +24,7 @@ namespace Lsp {
      *
      * @since 3.16.0
      */
-    [Compact (opaque=true)]
+    [Compact (opaque = true)]
     public class CodeDescription {
         /**
          * An URI to open with more information about the diagnostic error.
@@ -86,7 +86,7 @@ namespace Lsp {
 
     /**
      * Represents a related message and source code location for a diagnostic.
-     * 
+     *
      * This should be used to point to code locations that cause or are related
      * to a diagnostics, e.g when duplicating a symbol in a scope.
      */
@@ -106,7 +106,7 @@ namespace Lsp {
             this.message = message;
         }
 
-        public DiagnosticRelatedInformation.from_variant (Variant variant) throws Error {
+        public DiagnosticRelatedInformation.from_variant (Variant variant) throws UriError, DeserializeError {
             location = Location.from_variant (expect_property (variant, "location", VariantType.VARIANT, typeof (DiagnosticRelatedInformation).name ()));
             message = (string) expect_property (variant, "message", VariantType.STRING, typeof (DiagnosticRelatedInformation).name ());
         }
@@ -121,10 +121,10 @@ namespace Lsp {
 
     /**
      * Represents a diagnostic, such as a compiler error or warning.
-     * 
+     *
      * Diagnostic objects are only valid in the scope of a resource.
      */
-    [Compact (opaque=true)]
+    [Compact (opaque = true)]
     [CCode (ref_function = "lsp_diagnostic_ref", unref_function = "lsp_diagnostic_unref")]
     public class Diagnostic {
         private int ref_count = 1;
@@ -188,7 +188,7 @@ namespace Lsp {
          * property.
          */
         public DiagnosticRelatedInformation[]? related_information { get; set; }
-          
+
         /**
          * A data entry field that is preserved between a
          * `textDocument/publishDiagnostics` notification and
@@ -203,7 +203,7 @@ namespace Lsp {
             this.range = range;
         }
 
-        public Diagnostic.from_variant (Variant variant) throws Error {
+        public Diagnostic.from_variant (Variant variant) throws DeserializeError, UriError {
             Variant? prop = null;
 
             range = Range.from_variant (expect_property (variant, "range", VariantType.VARIANT, "LspDiagnostic"));
@@ -213,9 +213,9 @@ namespace Lsp {
 
             if ((prop = lookup_property (variant, "code", VariantType.INT64, "LspDiagnostic")) != null) {
                 if (prop.is_of_type (VariantType.INT64))
-                    code = ((int64)prop).to_string ();
+                    code = ((int64) prop).to_string ();
                 else if (prop.is_of_type (VariantType.STRING))
-                    code = (string)prop;
+                    code = (string) prop;
                 else
                     throw new DeserializeError.INVALID_TYPE ("LspDiagnostic.code must be an int64 or a string");
             }

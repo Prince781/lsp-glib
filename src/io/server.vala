@@ -145,6 +145,16 @@ public abstract class Lsp.Server : Jsonrpc.Server {
                     yield client.reply_async (id, new Variant.maybe (VariantType.VARIANT, null), cancellable);
                     break;
 
+                case "textDocument/codeAction":
+                    var text_document = TextDocumentIdentifier.from_variant (expect_property (parameters, "textDocument", VariantType.VARIANT, "CodeActionParams"));
+                    var range = Range.from_variant (expect_property (parameters, "range", VariantType.VARIANT, "CodeActionParams"));
+                    var context = new CodeActionContext.from_variant (expect_property (parameters, "context", VariantType.VARIANT, "CodeActionParams"));
+                    Variant[] actions = {};
+                    foreach (var action in yield code_action_async (lsp_client, text_document, range, context))
+                        actions += action.to_variant ();
+                    yield client.reply_async (id, actions, cancellable);
+                    break;
+
                 default:
                     yield reply_error_async (client, id, Jsonrpc.ClientError.METHOD_NOT_FOUND);
                     break;
@@ -152,6 +162,8 @@ public abstract class Lsp.Server : Jsonrpc.Server {
         } catch (DeserializeError e) {
             warning ("request failed - deserialize params failed - %s", e.message);
             yield reply_error_async (client, id, Jsonrpc.ClientError.INVALID_PARAMS, e.message);
+        } catch (ProtocolError.METHOD_NOT_IMPLEMENTED e) {
+            yield reply_error_async (client, id, Jsonrpc.ClientError.METHOD_NOT_FOUND, e.message);
         } catch (Error e) {
             yield reply_error_async (client, id, Jsonrpc.ClientError.INTERNAL_ERROR, e.message);
         }
@@ -274,6 +286,61 @@ public abstract class Lsp.Server : Jsonrpc.Server {
      * @param text_document     The document that was closed.
      */
     protected abstract async void text_document_did_close_async (Client client, TextDocumentIdentifier text_document) throws Error;
+
+    /**
+     * The code action request is sent from the client to the server to compute
+     * commands for a given text document and range. These commands are typically code
+     * fixes to either fix problems or to beautify/refactor code. The result of a
+     * textDocument/codeAction request is an array of Command literals which are
+     * typically presented in the user interface. To ensure that a server is useful in
+     * many clients the commands specified in a code actions should be handled by the
+     * server and not by the client (see workspace/executeCommand and
+     * ServerCapabilities.executeCommandProvider). If the client supports providing
+     * edits with a code action then that mode should be used.
+     * 
+     * Since version 3.16.0: a client can offer a server to delay the computation of
+     * code action properties during a ‘textDocument/codeAction’ request:
+     * 
+     * This is useful for cases where it is expensive to compute the value of a
+     * property (for example the edit property). Clients signal this through the
+     * codeAction.resolveSupport capability which lists all properties a client can
+     * resolve lazily. The server capability codeActionProvider.resolveProvider
+     * signals that a server will offer a codeAction/resolve route. To help servers to
+     * uniquely identify a code action in the resolve request, a code action literal
+     * can optional carry a data property. This is also guarded by an additional
+     * client capability codeAction.dataSupport. In general, a client should offer
+     * data support if it offers resolve support. It should also be noted that servers
+     * shouldn’t alter existing attributes of a code action in a codeAction/resolve
+     * request.
+     * 
+     * Since version 3.8.0: support for CodeAction literals to enable the
+     * following scenarios:
+     * 
+     *  * the ability to directly return a workspace edit from the code action
+     *    request. This avoids having another server roundtrip to execute an actual
+     *    code action. However server providers should be aware that if the code
+     *    action is expensive to compute or the edits are huge it might still be
+     *    beneficial if the result is simply a command and the actual edit is only
+     *    computed when needed.
+     *  * the ability to group code actions using a kind.
+     *    Clients are allowed to ignore that information. However it allows them to
+     *    better group code action for example into corresponding menus (e.g. all
+     *    refactor code actions into a refactor menu).
+     * 
+     * Clients need to announce their support for code action literals (e.g. literals
+     * of type CodeAction) and code action kinds via the corresponding client
+     * capability codeAction.codeActionLiteralSupport.
+     *
+     * @param text_document the document in which the command was invoked
+     * @param range         the range for which the command was invoked
+     * @param context       context carrying additional information
+     *
+     * @return a list of code actions and commands available at the current
+     *         range in the document
+     */
+    protected virtual async Action[]? code_action_async (Client client, TextDocumentIdentifier text_document, Range range, CodeActionContext context) throws Error{
+        throw new ProtocolError.METHOD_NOT_IMPLEMENTED ("textDocument/codeAction is not implemented");
+    }
 
     /**
      * The shutdown request is sent from the client to the server. It asks

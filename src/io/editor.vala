@@ -1,6 +1,6 @@
 /* client.vala
  *
- * Copyright 2021 Princeton Ferro <princetonferro@gmail.com>
+ * Copyright 2021-2022 Princeton Ferro <princetonferro@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -290,5 +290,94 @@ public class Lsp.Editor : Jsonrpc.Server {
 
         yield client.send_notification_async ("$/setTrace", parameters.end (), cancellable);
         this.trace_value = trace_value;         // synchronize on success
+    }
+
+    /**
+     * The code action request is sent from the client to the server to compute
+     * commands for a given text document and range. These commands are typically code
+     * fixes to either fix problems or to beautify/refactor code. The result of a
+     * textDocument/codeAction request is an array of Command literals which are
+     * typically presented in the user interface. To ensure that a server is useful in
+     * many clients the commands specified in a code actions should be handled by the
+     * server and not by the client (see workspace/executeCommand and
+     * ServerCapabilities.executeCommandProvider). If the client supports providing
+     * edits with a code action then that mode should be used.
+     *
+     * Since version 3.16.0: a client can offer a server to delay the computation of
+     * code action properties during a ‘textDocument/codeAction’ request:
+     *
+     * This is useful for cases where it is expensive to compute the value of a
+     * property (for example the edit property). Clients signal this through the
+     * codeAction.resolveSupport capability which lists all properties a client can
+     * resolve lazily. The server capability codeActionProvider.resolveProvider
+     * signals that a server will offer a codeAction/resolve route. To help servers to
+     * uniquely identify a code action in the resolve request, a code action literal
+     * can optional carry a data property. This is also guarded by an additional
+     * client capability codeAction.dataSupport. In general, a client should offer
+     * data support if it offers resolve support. It should also be noted that servers
+     * shouldn’t alter existing attributes of a code action in a codeAction/resolve
+     * request.
+     *
+     * Since version 3.8.0: support for CodeAction literals to enable the
+     * following scenarios:
+     *
+     *  * the ability to directly return a workspace edit from the code action
+     *    request. This avoids having another server roundtrip to execute an actual
+     *    code action. However server providers should be aware that if the code
+     *    action is expensive to compute or the edits are huge it might still be
+     *    beneficial if the result is simply a command and the actual edit is only
+     *    computed when needed.
+     *  * the ability to group code actions using a kind.
+     *    Clients are allowed to ignore that information. However it allows them to
+     *    better group code action for example into corresponding menus (e.g. all
+     *    refactor code actions into a refactor menu).
+     *
+     * Clients need to announce their support for code action literals (e.g. literals
+     * of type CodeAction) and code action kinds via the corresponding client
+     * capability codeAction.codeActionLiteralSupport.
+     *
+     * @param uri     the URI of the document in which the command was invoked
+     * @param range   the range for which the command was invoked
+     * @param trigger the reason why this code action request happened, or
+     *                {@link CodeActionTriggerKind.UNSET} for no reason
+     * @param only    if non-null, limit results to these kinds only
+     *
+     * @return a list of code actions and commands available at the current
+     *         range in the document, or null if there are none
+     */
+    public async Action[]? code_action_async (Uri uri, Range range,
+                                              CodeActionTriggerKind trigger = CodeActionTriggerKind.UNSET,
+                                              CodeActionKind[]? only = null) throws Error {
+        if (client == null)
+            throw new Lsp.ProtocolError.NO_CONNECTION ("not connected to a client");
+        if (init_result == null)
+            throw new Lsp.ProtocolError.CLIENT_NOT_INITIALIZED ("client not initialized");
+
+        var parameters = new VariantDict ();
+        parameters.insert_value ("textDocument", TextDocumentIdentifier.unversioned (uri).to_variant ());
+        parameters.insert_value ("range", range.to_variant ());
+        parameters.insert_value ("context", new CodeActionContext () {
+            trigger = trigger,
+            only = only
+        }.to_variant ());
+
+        Variant? return_value;
+        yield client.call_async ("textDocument/codeAction", parameters.end (), cancellable, out return_value);
+
+        if (return_value == null)
+            return null;
+
+        Action[] actions = {};
+        foreach (var item in return_value) {
+            if (!item.is_of_type (VariantType.VARDICT))
+                throw new DeserializeError.UNEXPECTED_ELEMENT ("value is not a structured element");
+            if (item.lookup_value ("kind", null) != null)
+                actions += new CodeAction.from_variant (item);
+            else if (item.lookup_value ("command", null) != null)
+                actions += new Command.from_variant (item);
+            else
+                throw new DeserializeError.UNEXPECTED_ELEMENT ("value is neither a code action nor a command");
+        }
+        return actions.length > 0 ? actions : null;
     }
 }

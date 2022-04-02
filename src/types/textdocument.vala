@@ -90,129 +90,129 @@ namespace Lsp {
 
         public unowned string to_string () {
             switch (this) {
-                case UNKNOWN:
-                    return "plain";
-                case ABAP:
-                    return "abap";
-                case BASH:
-                    return "shellscript";
-                case BAT:
-                    return "bat";
-                case BIBTEXT:
-                    return "bibtex";
-                case CLOJURE:
-                    return "clojure";
-                case COFFEESCRIPT:
-                    return "coffeescript";
-                case C:
-                    return "c";
-                case CPP:
-                    return "cpp";
-                case CSHARP:
-                    return "csharp";
-                case CSS:
-                    return "css";
-                case DIFF:
-                    return "diff";
-                case DART:
-                    return "dart";
-                case DOCKERFILE:
-                    return "dockerfile";
-                case ELIXIR:
-                    return "elixir";
-                case ERLANG:
-                    return "erlang";
-                case FSHARP:
-                    return "fsharp";
-                case GIT_COMMIT:
-                    return "git-commit";
-                case GIT_REBASE:
-                    return "git-rebase";
-                case GO:
-                    return "go";
-                case GROOVY:
-                    return "groovy";
-                case HANDLEBARS:
-                    return "handlebars";
-                case HTML:
-                    return "html";
-                case INI:
-                    return "ini";
-                case JAVA:
-                    return "java";
-                case JAVASCRIPT:
-                    return "javascript";
-                case JAVASCRIPT_REACT:
-                    return "javascriptreact";
-                case JSON:
-                    return "json";
-                case LATEX:
-                    return "latex";
-                case LESS:
-                    return "less";
-                case LUA:
-                    return "lua";
-                case MAKEFILE:
-                    return "makefile";
-                case MARKDOWN:
-                    return "markdown";
-                case OBJECTIVE_C:
-                    return "objective-c";
-                case OBJECTIVE_CPP:
-                    return "objective-cpp";
-                case PERL:
-                    return "perl";
-                case PERL6:
-                    return "perl6";
-                case PHP:
-                    return "php";
-                case POWERSHELL:
-                    return "powershell";
-                case PUG:
-                    return "jade";
-                case PYTHON:
-                    return "python";
-                case R:
-                    return "r";
-                case RAZOR:
-                    return "razor";
-                case RUBY:
-                    return "ruby";
-                case RUST:
-                    return "rust";
-                case SASS:
-                    return "sass";
-                case SCSS:
-                    return "scss";
-                case SCALA:
-                    return "scala";
-                case SHADERLAB:
-                    return "shaderlab";
-                case SQL:
-                    return "sql";
-                case SWIFT:
-                    return "swift";
-                case TYPESCRIPT:
-                    return "typescript";
-                case TYPESCRIPT_REACT:
-                    return "typescriptreact";
-                case TEX:
-                    return "tex";
-                case VALA:
-                    return "vala";
-                case XML:
-                    return "xml";
-                case XSL:
-                    return "xsl";
-                case YAML:
-                    return "yaml";
+            case UNKNOWN:
+                return "plain";
+            case ABAP:
+                return "abap";
+            case BASH:
+                return "shellscript";
+            case BAT:
+                return "bat";
+            case BIBTEXT:
+                return "bibtex";
+            case CLOJURE:
+                return "clojure";
+            case COFFEESCRIPT:
+                return "coffeescript";
+            case C:
+                return "c";
+            case CPP:
+                return "cpp";
+            case CSHARP:
+                return "csharp";
+            case CSS:
+                return "css";
+            case DIFF:
+                return "diff";
+            case DART:
+                return "dart";
+            case DOCKERFILE:
+                return "dockerfile";
+            case ELIXIR:
+                return "elixir";
+            case ERLANG:
+                return "erlang";
+            case FSHARP:
+                return "fsharp";
+            case GIT_COMMIT:
+                return "git-commit";
+            case GIT_REBASE:
+                return "git-rebase";
+            case GO:
+                return "go";
+            case GROOVY:
+                return "groovy";
+            case HANDLEBARS:
+                return "handlebars";
+            case HTML:
+                return "html";
+            case INI:
+                return "ini";
+            case JAVA:
+                return "java";
+            case JAVASCRIPT:
+                return "javascript";
+            case JAVASCRIPT_REACT:
+                return "javascriptreact";
+            case JSON:
+                return "json";
+            case LATEX:
+                return "latex";
+            case LESS:
+                return "less";
+            case LUA:
+                return "lua";
+            case MAKEFILE:
+                return "makefile";
+            case MARKDOWN:
+                return "markdown";
+            case OBJECTIVE_C:
+                return "objective-c";
+            case OBJECTIVE_CPP:
+                return "objective-cpp";
+            case PERL:
+                return "perl";
+            case PERL6:
+                return "perl6";
+            case PHP:
+                return "php";
+            case POWERSHELL:
+                return "powershell";
+            case PUG:
+                return "jade";
+            case PYTHON:
+                return "python";
+            case R:
+                return "r";
+            case RAZOR:
+                return "razor";
+            case RUBY:
+                return "ruby";
+            case RUST:
+                return "rust";
+            case SASS:
+                return "sass";
+            case SCSS:
+                return "scss";
+            case SCALA:
+                return "scala";
+            case SHADERLAB:
+                return "shaderlab";
+            case SQL:
+                return "sql";
+            case SWIFT:
+                return "swift";
+            case TYPESCRIPT:
+                return "typescript";
+            case TYPESCRIPT_REACT:
+                return "typescriptreact";
+            case TEX:
+                return "tex";
+            case VALA:
+                return "vala";
+            case XML:
+                return "xml";
+            case XSL:
+                return "xsl";
+            case YAML:
+                return "yaml";
             }
 
             assert_not_reached ();
         }
     }
 
-    /** 
+    /**
      * Contains a text document's URI and the version (optionally).
      */
     public struct TextDocumentIdentifier {
@@ -244,7 +244,7 @@ namespace Lsp {
         public TextDocumentIdentifier.from_variant (Variant dict) throws DeserializeError, UriError {
             var uri = (string) expect_property (dict, "uri", VariantType.STRING, typeof (TextDocumentIdentifier).name ());
             this.uri = Uri.parse (uri, UriFlags.NONE);
-            Variant? prop = null;
+            Variant ? prop = null;
             if ((prop = lookup_property (dict, "version", VariantType.INT64, typeof (TextDocumentIdentifier).name ())) != null) {
                 this.version = (int64) prop;
             } else if ((prop = lookup_property (dict, "version", VariantType.MAYBE, typeof (TextDocumentIdentifier).name ())) != null) {
@@ -347,17 +347,17 @@ namespace Lsp {
                 this.uri = Uri.parse ((string) prop, UriFlags.NONE);
             else
                 throw new DeserializeError.MISSING_PROPERTY ("property `uri` not found for TextDocumentItem");
-            
+
             if ((prop = dict.lookup_value ("languageId", VariantType.INT64)) != null)
                 this.language_id = (LanguageId) prop;
             else
                 throw new DeserializeError.MISSING_PROPERTY ("property `languageId` not found for TextDocumentItem");
-            
+
             if ((prop = dict.lookup_value ("version", VariantType.INT64)) != null)
                 this.version = (int64) prop;
             else
                 throw new DeserializeError.MISSING_PROPERTY ("property `version` not found for TextDocumentItem");
-            
+
             if ((prop = dict.lookup_value ("text", VariantType.STRING)) != null)
                 this.text = (string) prop;
             else

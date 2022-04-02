@@ -10,6 +10,7 @@ sources = [version_file] + files([
   'io/editor.vala',
   'io/server.vala',
   'types/clientcapabilities.vala',
+  'types/codeaction.vala',
   'types/command.vala',
   'types/completion.vala',
   'types/diagnostic.vala',

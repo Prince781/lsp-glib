@@ -1,5 +1,5 @@
 project('lsp-glib', 'vala', 'c',
-  version: '3.16.0-alpha',
+  version: '3.17.0-alpha',
   license: 'LGPL-2.1-or-later')
 
 dependencies = [

@@ -58,10 +58,36 @@ namespace Lsp {
          */
         public string? annotation_id { get; set; }
 
+        /**
+         * Creates a new {@link Lsp.TextEdit}
+         */
         public TextEdit (Range range, string new_text, string? annotation_id = null) {
             this.range = range;
             this.new_text = new_text;
             this.annotation_id = annotation_id;
+        }
+
+        /**
+         * Deserialize this from a {@link GLib.Variant}
+         */
+        public TextEdit.from_variant (Variant variant) throws DeserializeError {
+            range = Range.from_variant (expect_property (variant, "range", VariantType.VARDICT, "LspTextEdit"));
+            new_text = (string) expect_property (variant, "newText", VariantType.STRING, "LspTextEdit");
+            annotation_id = (string?) lookup_property (variant, "annotationId", VariantType.STRING, "LspTextEdit");
+        }
+
+        /**
+         * Serialize this to a {@link GLib.Variant}
+         */
+        public Variant to_variant () {
+            var variant = new VariantDict ();
+
+            variant.insert_value ("range", range.to_variant ());
+            variant.insert_value ("newText", new_text);
+            if (annotation_id != null)
+                variant.insert_value ("annotationId", annotation_id);
+
+            return variant.end ();
         }
     }
 
@@ -105,10 +131,30 @@ namespace Lsp {
          */
         public string? description { get; set; }
 
+        /**
+         * Creates a new {@link Lsp.ChangeAnnotation}
+         *
+         * {@inheritDoc}
+         */
         public ChangeAnnotation (string label, bool needs_confirmation = false, string? description = null) {
             this.label = label;
             this.needs_confirmation = needs_confirmation;
             this.description = description;
+        }
+
+        /**
+         * Serializes this to a {@link GLib.Variant}
+         */
+        public Variant to_variant () {
+            var variant = new VariantDict ();
+
+            variant.insert_value ("label", label);
+            if (needs_confirmation)
+                variant.insert_value ("needsConfirmation", needs_confirmation);
+            if (description != null)
+                variant.insert_value ("description", description);
+
+            return variant.end ();
         }
     }
 
@@ -124,12 +170,14 @@ namespace Lsp {
      * overlapping.
      */
     public class TextDocumentEdit : ResourceOperation {
+        public override unowned string kind {
+            get { return "textDocumentEdit"; }
+        }
+
         /**
          * The text document to change. This may be a versioned {@link TextDocumentIdentifier}
          */
         public TextDocumentIdentifier text_document { get; set; }
-
-        private TextEdit[] _edits;
 
         /**
          * The edits to be applied.
@@ -137,20 +185,32 @@ namespace Lsp {
          * Support for annotated text edits is guarded by the client capability
          * `workspace.workspaceEdit.changeAnnotationSupport`
          */
-        public TextEdit[] edits {
-            get { return _edits; }
-            set {
-                for (var i = 0; i < value.length; i++)
-                    _edits += (owned)value[i];
-            }
-        }
+        public TextEdit[] edits { get; set; }
 
         public TextDocumentEdit (TextDocumentIdentifier text_document, TextEdit[] edits) {
             this.text_document = text_document;
-            this._edits = {};
+            this.edits = edits;
+        }
 
-            for (var i = 0; i < edits.length; i++)
-                this._edits += (owned)edits[i];
+        public TextDocumentEdit.from_variant (Variant variant) throws DeserializeError, UriError {
+            text_document = TextDocumentIdentifier.from_variant (expect_property (variant, "textDocument", VariantType.VARDICT, "LspTextDocumentEdit"));
+            TextEdit[] edits = {};
+            foreach (var vedit in expect_property (variant, "edits", VariantType.ARRAY, "LspTextDocumentEdit"))
+                edits += TextEdit.from_variant (vedit);
+            this.edits = edits;
+        }
+
+        public override Variant to_variant () {
+            var variant = new VariantDict ();
+
+            variant.insert_value ("kind", kind);
+            variant.insert_value ("textDocument", text_document.to_variant ());
+            Variant[] edits_list = {};
+            foreach (var edit in edits)
+                edits_list += edit.to_variant ();
+            variant.insert_value ("edits", edits_list);
+
+            return variant.end ();
         }
     }
 }

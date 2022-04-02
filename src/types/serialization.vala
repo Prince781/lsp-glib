@@ -31,6 +31,11 @@ namespace Lsp {
         /**
          * A property had an invalid type.
          */
-        INVALID_TYPE
+        INVALID_TYPE,
+
+        /**
+         * An array element had an unhandled type
+         */
+        UNEXPECTED_ELEMENT
     }
 }

@@ -22,21 +22,34 @@ namespace Lsp {
     /**
      * The kind of resource operations supported by the client.
      */
-    namespace ResourceOperationKind {
+    public enum ResourceOperationKind {
         /**
          * Supports creating new files and folders
          */
-        public const string CREATE = "create";
+        CREATE,
 
         /**
          * Supports renaming existing files and folders.
          */
-        public const string RENAME = "rename";
+        RENAME,
 
         /**
          * Supports deleting existing files and folders.
          */
-        public const string DELETE = "delete";
+        DELETE;
+
+        public unowned string to_string () {
+            switch (this) {
+                case CREATE:
+                    return "create";
+                case RENAME:
+                    return "rename";
+                case DELETE:
+                    return "delete";
+            }
+
+            assert_not_reached ();
+        }
     }
 
     public enum FailureHandlingKind {
