@@ -203,6 +203,22 @@ public abstract class Lsp.Server : Jsonrpc.Server {
                         yield client.reply_async (id, sig_result.to_variant (), cancellable);
                     break;
 
+                case "textDocument/declaration":
+                    var tdi_variant = expect_property (parameters, "textDocument", VariantType.VARDICT, "DeclarationParams");
+                    var pos_variant = expect_property (parameters, "position", VariantType.VARDICT, "DeclarationParams");
+                    Location[]? decl_result = yield declaration_async (lsp_client,
+                        TextDocumentIdentifier.from_variant (tdi_variant),
+                        Position.from_variant (pos_variant));
+                    if (decl_result == null) {
+                        yield client.reply_async (id, new Variant.maybe (VariantType.VARIANT, null), cancellable);
+                    } else {
+                        Variant[] loc_variants = {};
+                        foreach (unowned var loc in decl_result)
+                            loc_variants += loc.to_variant ();
+                        yield client.reply_async (id, loc_variants, cancellable);
+                    }
+                    break;
+
                 case "textDocument/definition":
                     var tdi_variant = expect_property (parameters, "textDocument", VariantType.VARDICT, "DefinitionParams");
                     var pos_variant = expect_property (parameters, "position", VariantType.VARDICT, "DefinitionParams");
@@ -506,6 +522,20 @@ public abstract class Lsp.Server : Jsonrpc.Server {
      */
     protected virtual async SignatureHelp? signature_help_async (Client client, TextDocumentIdentifier text_document, Position position) throws Error {
         throw new ProtocolError.METHOD_NOT_IMPLEMENTED ("textDocument/signatureHelp is not implemented");
+    }
+
+    /**
+     * The go-to-declaration request is sent from the client to the server
+     * to resolve the declaration location for a symbol at a given text
+     * document position.
+     *
+     * @param text_document the document containing the symbol
+     * @param position      the position inside the document
+     *
+     * @return a list of locations where the symbol is declared, or null
+     */
+    protected virtual async Location[]? declaration_async (Client client, TextDocumentIdentifier text_document, Position position) throws Error {
+        throw new ProtocolError.METHOD_NOT_IMPLEMENTED ("textDocument/declaration is not implemented");
     }
 
     /**
