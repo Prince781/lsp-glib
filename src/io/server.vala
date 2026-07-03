@@ -340,6 +340,48 @@ public abstract class Lsp.Server : Jsonrpc.Server {
                     }
                     break;
 
+                case "textDocument/prepareCallHierarchy":
+                    var tdi_variant = expect_property (parameters, "textDocument", VariantType.VARDICT, "CallHierarchyPrepareParams");
+                    var pos_variant = expect_property (parameters, "position", VariantType.VARDICT, "CallHierarchyPrepareParams");
+                    CallHierarchyItem[]? ch_result = yield prepare_call_hierarchy_async (lsp_client,
+                        TextDocumentIdentifier.from_variant (tdi_variant),
+                        Position.from_variant (pos_variant));
+                    if (ch_result == null) {
+                        yield client.reply_async (id, new Variant.maybe (VariantType.VARIANT, null), cancellable);
+                    } else {
+                        Variant[] ch_variants = {};
+                        foreach (unowned var item in ch_result)
+                            ch_variants += item.to_variant ();
+                        yield client.reply_async (id, ch_variants, cancellable);
+                    }
+                    break;
+
+                case "callHierarchy/incomingCalls":
+                    var item = new CallHierarchyItem.from_variant (parameters);
+                    CallHierarchyIncomingCall[]? in_result = yield incoming_calls_async (lsp_client, item);
+                    if (in_result == null) {
+                        yield client.reply_async (id, new Variant.maybe (VariantType.VARIANT, null), cancellable);
+                    } else {
+                        Variant[] in_variants = {};
+                        foreach (unowned var call in in_result)
+                            in_variants += call.to_variant ();
+                        yield client.reply_async (id, in_variants, cancellable);
+                    }
+                    break;
+
+                case "callHierarchy/outgoingCalls":
+                    var out_item = new CallHierarchyItem.from_variant (parameters);
+                    CallHierarchyOutgoingCall[]? out_result = yield outgoing_calls_async (lsp_client, out_item);
+                    if (out_result == null) {
+                        yield client.reply_async (id, new Variant.maybe (VariantType.VARIANT, null), cancellable);
+                    } else {
+                        Variant[] out_variants = {};
+                        foreach (unowned var call in out_result)
+                            out_variants += call.to_variant ();
+                        yield client.reply_async (id, out_variants, cancellable);
+                    }
+                    break;
+
                 case "textDocument/codeLens":
                     var tdi_variant = expect_property (parameters, "textDocument", VariantType.VARDICT, "CodeLensParams");
                     CodeLens[]? lenses = yield code_lens_async (lsp_client,
@@ -775,6 +817,44 @@ public abstract class Lsp.Server : Jsonrpc.Server {
      */
     protected virtual async TextEdit[]? range_formatting_async (Client client, TextDocumentIdentifier text_document, Range range, FormattingOptions options) throws Error {
         throw new ProtocolError.METHOD_NOT_IMPLEMENTED ("textDocument/rangeFormatting is not implemented");
+    }
+
+    /**
+     * The prepare call hierarchy request is sent from the client to the
+     * server to prepare a call hierarchy for a symbol at a given text
+     * document position.
+     *
+     * @param text_document the document containing the symbol
+     * @param position      the position inside the document
+     *
+     * @return a list of call hierarchy items, or null
+     */
+    protected virtual async CallHierarchyItem[]? prepare_call_hierarchy_async (Client client, TextDocumentIdentifier text_document, Position position) throws Error {
+        throw new ProtocolError.METHOD_NOT_IMPLEMENTED ("textDocument/prepareCallHierarchy is not implemented");
+    }
+
+    /**
+     * The incoming calls request is sent from the client to the server
+     * to resolve incoming calls for a given call hierarchy item.
+     *
+     * @param item the call hierarchy item
+     *
+     * @return a list of incoming calls, or null
+     */
+    protected virtual async CallHierarchyIncomingCall[]? incoming_calls_async (Client client, CallHierarchyItem item) throws Error {
+        throw new ProtocolError.METHOD_NOT_IMPLEMENTED ("callHierarchy/incomingCalls is not implemented");
+    }
+
+    /**
+     * The outgoing calls request is sent from the client to the server
+     * to resolve outgoing calls for a given call hierarchy item.
+     *
+     * @param item the call hierarchy item
+     *
+     * @return a list of outgoing calls, or null
+     */
+    protected virtual async CallHierarchyOutgoingCall[]? outgoing_calls_async (Client client, CallHierarchyItem item) throws Error {
+        throw new ProtocolError.METHOD_NOT_IMPLEMENTED ("callHierarchy/outgoingCalls is not implemented");
     }
 
     /**

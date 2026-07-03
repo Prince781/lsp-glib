@@ -434,6 +434,11 @@ namespace Lsp {
         public RenameOptions? rename { get; set; }
 
         /**
+         * Whether the server provides call hierarchy support.
+         */
+        public CallHierarchyOptions? call_hierarchy { get; set; }
+
+        /**
          * The server provides workspace symbol support.
          */
         public bool workspace_symbol { get; set; }
@@ -560,6 +565,9 @@ namespace Lsp {
             if ((prop = lookup_property (variant, "renameProvider", VariantType.VARDICT, "ServerCaps")) != null)
                 rename = new RenameOptions.from_variant (prop);
 
+            if ((prop = lookup_property (variant, "callHierarchyProvider", VariantType.VARDICT, "ServerCaps")) != null)
+                call_hierarchy = new CallHierarchyOptions.from_variant (prop);
+
             if ((prop = lookup_property (variant, "workspaceSymbolProvider", VariantType.BOOLEAN, "ServerCaps")) != null)
                 workspace_symbol = (bool) prop;
         }
@@ -592,6 +600,8 @@ namespace Lsp {
                 dict.insert_value ("documentOnTypeFormattingProvider", document_on_type_formatting.to_variant ());
             if (rename != null)
                 dict.insert_value ("renameProvider", rename.to_variant ());
+            if (call_hierarchy != null)
+                dict.insert_value ("callHierarchyProvider", call_hierarchy.to_variant ());
             dict.insert_value ("workspaceSymbolProvider", workspace_symbol);
 
             return dict.end ();
