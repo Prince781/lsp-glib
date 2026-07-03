@@ -309,6 +309,20 @@ public abstract class Lsp.Server : Jsonrpc.Server {
                     }
                     break;
 
+                case "textDocument/codeLens":
+                    var tdi_variant = expect_property (parameters, "textDocument", VariantType.VARDICT, "CodeLensParams");
+                    CodeLens[]? lenses = yield code_lens_async (lsp_client,
+                        TextDocumentIdentifier.from_variant (tdi_variant));
+                    if (lenses == null) {
+                        yield client.reply_async (id, new Variant.maybe (VariantType.VARIANT, null), cancellable);
+                    } else {
+                        Variant[] lens_variants = {};
+                        foreach (unowned var lens in lenses)
+                            lens_variants += lens.to_variant ();
+                        yield client.reply_async (id, lens_variants, cancellable);
+                    }
+                    break;
+
                 case "workspace/symbol":
                     var query = (string) expect_property (parameters, "query", VariantType.STRING, "WorkspaceSymbolParams");
                     SymbolInformation[]? sym_result = yield workspace_symbol_async (lsp_client, query);
@@ -691,6 +705,18 @@ public abstract class Lsp.Server : Jsonrpc.Server {
      */
     protected virtual async Variant? prepare_rename_async (Client client, TextDocumentIdentifier text_document, Position position) throws Error {
         throw new ProtocolError.METHOD_NOT_IMPLEMENTED ("textDocument/prepareRename is not implemented");
+    }
+
+    /**
+     * The code lens request is sent from the client to the server to
+     * compute code lenses for a given text document.
+     *
+     * @param text_document the document to compute code lenses for
+     *
+     * @return a list of code lenses, or null if there are none
+     */
+    protected virtual async CodeLens[]? code_lens_async (Client client, TextDocumentIdentifier text_document) throws Error {
+        throw new ProtocolError.METHOD_NOT_IMPLEMENTED ("textDocument/codeLens is not implemented");
     }
 
     /**

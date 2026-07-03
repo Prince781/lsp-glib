@@ -764,6 +764,34 @@ public class Lsp.Editor : Jsonrpc.Server {
     }
 
     /**
+     * The code lens request is sent from the client to the server to
+     * compute code lenses for a given text document.
+     *
+     * @param uri the URI of the document to compute code lenses for
+     *
+     * @return a list of code lenses, or null if there are none
+     */
+    public async CodeLens[]? code_lens_async (Uri uri) throws Error {
+        if (client == null)
+            throw new Lsp.ProtocolError.NO_CONNECTION ("not connected to a client");
+        if (init_result == null)
+            throw new Lsp.ProtocolError.CLIENT_NOT_INITIALIZED ("client not initialized");
+
+        var parameters = new CodeLensParams (TextDocumentIdentifier.unversioned (uri));
+
+        Variant? return_value;
+        yield client.call_async ("textDocument/codeLens", parameters.to_variant (), cancellable, out return_value);
+
+        if (return_value == null)
+            return null;
+
+        CodeLens[] items = {};
+        foreach (var item in return_value)
+            items += new CodeLens.from_variant (item);
+        return items.length > 0 ? items : null;
+    }
+
+    /**
      * The workspace symbol request is sent from the client to the server
      * to list project-wide symbols matching a given query string.
      *
