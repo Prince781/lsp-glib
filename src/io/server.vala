@@ -203,6 +203,24 @@ public abstract class Lsp.Server : Jsonrpc.Server {
                         yield client.reply_async (id, sig_result.to_variant (), cancellable);
                     break;
 
+                case "textDocument/references":
+                    var tdi_variant = expect_property (parameters, "textDocument", VariantType.VARDICT, "ReferenceParams");
+                    var pos_variant = expect_property (parameters, "position", VariantType.VARDICT, "ReferenceParams");
+                    var ctx_variant = expect_property (parameters, "context", VariantType.VARDICT, "ReferenceParams");
+                    Location[]? refs = yield references_async (lsp_client,
+                        TextDocumentIdentifier.from_variant (tdi_variant),
+                        Position.from_variant (pos_variant),
+                        new ReferenceContext.from_variant (ctx_variant));
+                    if (refs == null) {
+                        yield client.reply_async (id, new Variant.maybe (VariantType.VARIANT, null), cancellable);
+                    } else {
+                        Variant[] ref_variants = {};
+                        foreach (unowned var loc in refs)
+                            ref_variants += loc.to_variant ();
+                        yield client.reply_async (id, ref_variants, cancellable);
+                    }
+                    break;
+
                 case "textDocument/documentSymbol":
                     var tdi_variant = expect_property (parameters, "textDocument", VariantType.VARDICT, "DocumentSymbolParams");
                     DocumentSymbol[]? sym_result = yield document_symbol_async (lsp_client,
@@ -514,6 +532,21 @@ public abstract class Lsp.Server : Jsonrpc.Server {
      */
     protected virtual async SymbolInformation[]? workspace_symbol_async (Client client, string query) throws Error {
         throw new ProtocolError.METHOD_NOT_IMPLEMENTED ("workspace/symbol is not implemented");
+    }
+
+    /**
+     * The references request is sent from the client to the server to
+     * resolve project-wide references for the symbol denoted by the
+     * given text document position.
+     *
+     * @param text_document the document containing the symbol
+     * @param position      the position inside the document
+     * @param context       additional information
+     *
+     * @return a list of locations for the references, or null
+     */
+    protected virtual async Location[]? references_async (Client client, TextDocumentIdentifier text_document, Position position, ReferenceContext context) throws Error {
+        throw new ProtocolError.METHOD_NOT_IMPLEMENTED ("textDocument/references is not implemented");
     }
 
     /**

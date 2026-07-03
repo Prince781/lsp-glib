@@ -21,6 +21,7 @@ sources = [version_file] + files([
   'types/location.vala',
   'types/markupcontent.vala',
   'types/message.vala',
+  'types/reference.vala',
   'types/serialization.vala',
   'types/servercapabilities.vala',
   'types/signaturehelp.vala',
