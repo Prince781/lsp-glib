@@ -203,6 +203,33 @@ public abstract class Lsp.Server : Jsonrpc.Server {
                         yield client.reply_async (id, sig_result.to_variant (), cancellable);
                     break;
 
+                case "textDocument/documentSymbol":
+                    var tdi_variant = expect_property (parameters, "textDocument", VariantType.VARDICT, "DocumentSymbolParams");
+                    DocumentSymbol[]? sym_result = yield document_symbol_async (lsp_client,
+                        TextDocumentIdentifier.from_variant (tdi_variant));
+                    if (sym_result == null) {
+                        yield client.reply_async (id, new Variant.maybe (VariantType.VARIANT, null), cancellable);
+                    } else {
+                        Variant[] sym_variants = {};
+                        foreach (unowned var sym in sym_result)
+                            sym_variants += sym.to_variant ();
+                        yield client.reply_async (id, sym_variants, cancellable);
+                    }
+                    break;
+
+                case "workspace/symbol":
+                    var query = (string) expect_property (parameters, "query", VariantType.STRING, "WorkspaceSymbolParams");
+                    SymbolInformation[]? sym_result = yield workspace_symbol_async (lsp_client, query);
+                    if (sym_result == null) {
+                        yield client.reply_async (id, new Variant.maybe (VariantType.VARIANT, null), cancellable);
+                    } else {
+                        Variant[] sym_variants = {};
+                        foreach (unowned var sym in sym_result)
+                            sym_variants += sym.to_variant ();
+                        yield client.reply_async (id, sym_variants, cancellable);
+                    }
+                    break;
+
                 case "textDocument/codeAction":
                     var text_document = TextDocumentIdentifier.from_variant (expect_property (parameters, "textDocument", VariantType.VARIANT, "CodeActionParams"));
                     var range = Range.from_variant (expect_property (parameters, "range", VariantType.VARIANT, "CodeActionParams"));
@@ -462,6 +489,31 @@ public abstract class Lsp.Server : Jsonrpc.Server {
      */
     protected virtual async DocumentHighlight[]? document_highlight_async (Client client, TextDocumentIdentifier text_document, Position position) throws Error {
         throw new ProtocolError.METHOD_NOT_IMPLEMENTED ("textDocument/documentHighlight is not implemented");
+    }
+
+    /**
+     * The document symbol request is sent from the client to the server
+     * to return all symbols found in a given text document.
+     *
+     * @param text_document the document to list symbols from
+     *
+     * @return a list of document symbols, or null if there are none
+     */
+    protected virtual async DocumentSymbol[]? document_symbol_async (Client client, TextDocumentIdentifier text_document) throws Error {
+        throw new ProtocolError.METHOD_NOT_IMPLEMENTED ("textDocument/documentSymbol is not implemented");
+    }
+
+    /**
+     * The workspace symbol request is sent from the client to the server
+     * to list project-wide symbols matching a given query string.
+     *
+     * @param query a non-empty query string
+     *
+     * @return a list of symbol informations matching the query, or null
+     *         if there are none
+     */
+    protected virtual async SymbolInformation[]? workspace_symbol_async (Client client, string query) throws Error {
+        throw new ProtocolError.METHOD_NOT_IMPLEMENTED ("workspace/symbol is not implemented");
     }
 
     /**

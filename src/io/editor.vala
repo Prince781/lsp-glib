@@ -421,6 +421,35 @@ public class Lsp.Editor : Jsonrpc.Server {
     }
 
     /**
+     * The document symbol request is sent from the client to the server
+     * to return all symbols found in a given text document.
+     *
+     * @param uri the URI of the document to list symbols from
+     *
+     * @return a list of document symbols, or null if there are none
+     */
+    public async DocumentSymbol[]? document_symbol_async (Uri uri) throws Error {
+        if (client == null)
+            throw new Lsp.ProtocolError.NO_CONNECTION ("not connected to a client");
+        if (init_result == null)
+            throw new Lsp.ProtocolError.CLIENT_NOT_INITIALIZED ("client not initialized");
+
+        var parameters = new VariantDict ();
+        parameters.insert_value ("textDocument", TextDocumentIdentifier.unversioned (uri).to_variant ());
+
+        Variant? return_value;
+        yield client.call_async ("textDocument/documentSymbol", parameters.end (), cancellable, out return_value);
+
+        if (return_value == null)
+            return null;
+
+        DocumentSymbol[] items = {};
+        foreach (var item in return_value)
+            items += new DocumentSymbol.from_variant (item);
+        return items.length > 0 ? items : null;
+    }
+
+    /**
      * The code action request is sent from the client to the server to compute
      * commands for a given text document and range. These commands are typically code
      * fixes to either fix problems or to beautify/refactor code. The result of a
@@ -507,5 +536,35 @@ public class Lsp.Editor : Jsonrpc.Server {
                 throw new DeserializeError.UNEXPECTED_ELEMENT ("value is neither a code action nor a command");
         }
         return actions.length > 0 ? actions : null;
+    }
+
+    /**
+     * The workspace symbol request is sent from the client to the server
+     * to list project-wide symbols matching a given query string.
+     *
+     * @param query a non-empty query string
+     *
+     * @return a list of symbol informations matching the query, or null
+     *         if there are none
+     */
+    public async SymbolInformation[]? workspace_symbol_async (string query) throws Error {
+        if (client == null)
+            throw new Lsp.ProtocolError.NO_CONNECTION ("not connected to a client");
+        if (init_result == null)
+            throw new Lsp.ProtocolError.CLIENT_NOT_INITIALIZED ("client not initialized");
+
+        var parameters = new VariantDict ();
+        parameters.insert_value ("query", new Variant.string (query));
+
+        Variant? return_value;
+        yield client.call_async ("workspace/symbol", parameters.end (), cancellable, out return_value);
+
+        if (return_value == null)
+            return null;
+
+        SymbolInformation[] items = {};
+        foreach (var item in return_value)
+            items += new SymbolInformation.from_variant (item);
+        return items.length > 0 ? items : null;
     }
 }
