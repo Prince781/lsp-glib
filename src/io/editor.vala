@@ -622,6 +622,59 @@ public class Lsp.Editor : Jsonrpc.Server {
     }
 
     /**
+     * The rename request is sent from the client to the server to
+     * rename a symbol.
+     *
+     * @param uri       the URI of the document containing the symbol
+     * @param position  the position of the symbol
+     * @param new_name  the new name for the symbol
+     *
+     * @return a workspace edit describing the rename, or null
+     */
+    public async WorkspaceEdit? rename_async (Uri uri, Position position, string new_name) throws Error {
+        if (client == null)
+            throw new Lsp.ProtocolError.NO_CONNECTION ("not connected to a client");
+        if (init_result == null)
+            throw new Lsp.ProtocolError.CLIENT_NOT_INITIALIZED ("client not initialized");
+
+        var parameters = new RenameParams (TextDocumentIdentifier.unversioned (uri), position, new_name);
+
+        Variant? return_value;
+        yield client.call_async ("textDocument/rename", parameters.to_variant (), cancellable, out return_value);
+
+        if (return_value == null)
+            return null;
+
+        return new WorkspaceEdit.from_variant (return_value);
+    }
+
+    /**
+     * The prepare rename request is sent from the client to the server
+     * to check whether a rename is valid at the given position.
+     *
+     * @param uri       the URI of the document containing the symbol
+     * @param position  the position of the symbol
+     *
+     * @return a range indicating the prepared rename, or a dict with
+     *         range and placeholder, or null
+     */
+    public async Variant? prepare_rename_async (Uri uri, Position position) throws Error {
+        if (client == null)
+            throw new Lsp.ProtocolError.NO_CONNECTION ("not connected to a client");
+        if (init_result == null)
+            throw new Lsp.ProtocolError.CLIENT_NOT_INITIALIZED ("client not initialized");
+
+        var parameters = new VariantDict ();
+        parameters.insert_value ("textDocument", TextDocumentIdentifier.unversioned (uri).to_variant ());
+        parameters.insert_value ("position", position.to_variant ());
+
+        Variant? return_value;
+        yield client.call_async ("textDocument/prepareRename", parameters.end (), cancellable, out return_value);
+
+        return return_value;
+    }
+
+    /**
      * The code action request is sent from the client to the server to compute
      * commands for a given text document and range. These commands are typically code
      * fixes to either fix problems or to beautify/refactor code. The result of a

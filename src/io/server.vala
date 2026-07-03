@@ -283,6 +283,32 @@ public abstract class Lsp.Server : Jsonrpc.Server {
                     }
                     break;
 
+                case "textDocument/rename":
+                    var rename_params = new RenameParams.from_variant (parameters);
+                    WorkspaceEdit? rename_result = yield rename_async (lsp_client,
+                        rename_params.text_document,
+                        rename_params.position,
+                        rename_params.new_name);
+                    if (rename_result == null) {
+                        yield client.reply_async (id, new Variant.maybe (VariantType.VARIANT, null), cancellable);
+                    } else {
+                        yield client.reply_async (id, rename_result.to_variant (), cancellable);
+                    }
+                    break;
+
+                case "textDocument/prepareRename":
+                    var tdi_variant = expect_property (parameters, "textDocument", VariantType.VARDICT, "PrepareRenameParams");
+                    var pos_variant = expect_property (parameters, "position", VariantType.VARDICT, "PrepareRenameParams");
+                    Variant? prepare_result = yield prepare_rename_async (lsp_client,
+                        TextDocumentIdentifier.from_variant (tdi_variant),
+                        Position.from_variant (pos_variant));
+                    if (prepare_result == null) {
+                        yield client.reply_async (id, new Variant.maybe (VariantType.VARIANT, null), cancellable);
+                    } else {
+                        yield client.reply_async (id, prepare_result, cancellable);
+                    }
+                    break;
+
                 case "workspace/symbol":
                     var query = (string) expect_property (parameters, "query", VariantType.STRING, "WorkspaceSymbolParams");
                     SymbolInformation[]? sym_result = yield workspace_symbol_async (lsp_client, query);
@@ -638,6 +664,33 @@ public abstract class Lsp.Server : Jsonrpc.Server {
      */
     protected virtual async Location[]? implementation_async (Client client, TextDocumentIdentifier text_document, Position position) throws Error {
         throw new ProtocolError.METHOD_NOT_IMPLEMENTED ("textDocument/implementation is not implemented");
+    }
+
+    /**
+     * The rename request is sent from the client to the server to
+     * rename a symbol.
+     *
+     * @param text_document the document containing the symbol
+     * @param position      the position of the symbol
+     * @param new_name      the new name for the symbol
+     *
+     * @return a workspace edit describing the rename, or null
+     */
+    protected virtual async WorkspaceEdit? rename_async (Client client, TextDocumentIdentifier text_document, Position position, string new_name) throws Error {
+        throw new ProtocolError.METHOD_NOT_IMPLEMENTED ("textDocument/rename is not implemented");
+    }
+
+    /**
+     * The prepare rename request is sent from the client to the server
+     * to check whether a rename is valid at the given position.
+     *
+     * @param text_document the document containing the symbol
+     * @param position      the position of the symbol
+     *
+     * @return a Variant describing the prepared rename range, or null
+     */
+    protected virtual async Variant? prepare_rename_async (Client client, TextDocumentIdentifier text_document, Position position) throws Error {
+        throw new ProtocolError.METHOD_NOT_IMPLEMENTED ("textDocument/prepareRename is not implemented");
     }
 
     /**
