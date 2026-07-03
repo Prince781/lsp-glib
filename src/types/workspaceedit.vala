@@ -22,7 +22,7 @@ namespace Lsp {
     /**
      * An operation to edit a workspace.
      *
-     * @see WorkspaceEdit.changes
+     * @see WorkspaceEdit.document_changes
      */
     public abstract class ResourceOperation {
         public abstract unowned string kind { get; }
@@ -77,7 +77,14 @@ namespace Lsp {
 
             variant.insert_value ("kind", kind);
             variant.insert_value ("uri", uri.to_string ());
-            variant.insert_value ("options", options);
+            if (options != NONE) {
+                var opts = new VariantDict ();
+                if ((options & Options.OVERWRITE) != 0)
+                    opts.insert_value ("overwrite", new Variant.boolean (true));
+                if ((options & Options.IGNORE_IF_EXISTS) != 0)
+                    opts.insert_value ("ignoreIfExists", new Variant.boolean (true));
+                variant.insert_value ("options", opts.end ());
+            }
             if (annotation_id != null)
                 variant.insert_value ("annotationId", annotation_id);
 
@@ -133,7 +140,14 @@ namespace Lsp {
             variant.insert_value ("kind", kind);
             variant.insert_value ("oldUri", old_uri.to_string ());
             variant.insert_value ("newUri", new_uri.to_string ());
-            variant.insert_value ("options", options);
+            if (options != NONE) {
+                var opts = new VariantDict ();
+                if ((options & Options.OVERWRITE) != 0)
+                    opts.insert_value ("overwrite", new Variant.boolean (true));
+                if ((options & Options.IGNORE_IF_EXISTS) != 0)
+                    opts.insert_value ("ignoreIfExists", new Variant.boolean (true));
+                variant.insert_value ("options", opts.end ());
+            }
             if (annotation_id != null)
                 variant.insert_value ("annotationId", annotation_id);
 
@@ -185,7 +199,14 @@ namespace Lsp {
 
             variant.insert_value ("kind", kind);
             variant.insert_value ("uri", uri.to_string ());
-            variant.insert_value ("options", options);
+            if (options != NONE) {
+                var opts = new VariantDict ();
+                if ((options & Options.RECURSIVE) != 0)
+                    opts.insert_value ("recursive", new Variant.boolean (true));
+                if ((options & Options.IGNORE_IF_NOT_EXISTS) != 0)
+                    opts.insert_value ("ignoreIfNotExists", new Variant.boolean (true));
+                variant.insert_value ("options", opts.end ());
+            }
             if (annotation_id != null)
                 variant.insert_value ("annotationId", annotation_id);
 
@@ -219,7 +240,7 @@ namespace Lsp {
          *
          * This corresponds to the `documentChanges` property in the protocol.
          */
-        public ResourceOperation[] changes { get; private set; default = {}; }
+        public ResourceOperation[] document_changes { get; private set; default = {}; }
 
         /**
          * A map of change annotations that can be referenced in
@@ -239,19 +260,34 @@ namespace Lsp {
          * Deserialize this from a {@link GLib.Variant}
          */
         public WorkspaceEdit.from_variant (Variant variant) throws DeserializeError, UriError {
-            ResourceOperation[] document_changes = {};
-            foreach (var vchange in lookup_property (variant, "documentChanges", VariantType.ARRAY, "LspWorkspaceEdit")) {
-                var prop = (string?) lookup_property (vchange, "kind", VariantType.STRING, "LspWorkspaceEdit");
-                if (prop == null)
-                    document_changes += new TextDocumentEdit.from_variant (vchange);
-                else if (prop == "create")
-                    document_changes += new CreateFile.from_variant (vchange);
-                else if (prop == "delete")
-                    document_changes += new DeleteFile.from_variant (vchange);
-                else if (prop == "rename")
-                    document_changes += new RenameFile.from_variant (vchange);
-                else
-                    throw new DeserializeError.UNEXPECTED_ELEMENT ("unexpected element in documentChanges array");
+            Variant? doc_changes = lookup_property (variant, "documentChanges", VariantType.ARRAY, "LspWorkspaceEdit");
+            if (doc_changes != null) {
+                ResourceOperation[] items = {};
+                foreach (var vchange in doc_changes) {
+                    var prop = (string?) lookup_property (vchange, "kind", VariantType.STRING, "LspWorkspaceEdit");
+                    if (prop == null)
+                        items += new TextDocumentEdit.from_variant (vchange);
+                    else if (prop == "create")
+                        items += new CreateFile.from_variant (vchange);
+                    else if (prop == "delete")
+                        items += new DeleteFile.from_variant (vchange);
+                    else if (prop == "rename")
+                        items += new RenameFile.from_variant (vchange);
+                    else
+                        throw new DeserializeError.UNEXPECTED_ELEMENT ("unexpected element in documentChanges array");
+                }
+                document_changes = items;
+            }
+
+            Variant? annotations = lookup_property (variant, "changeAnnotations", VariantType.VARDICT, "LspWorkspaceEdit");
+            if (annotations != null) {
+                var map = new HashTable<string, ChangeAnnotation> (str_hash, str_equal);
+                VariantIter iter = annotations.iterator ();
+                string key;
+                Variant val;
+                while (iter.next ("{sv}", out key, out val))
+                    map[key] = new ChangeAnnotation.from_variant (val);
+                change_annotations = map;
             }
         }
 
@@ -261,10 +297,12 @@ namespace Lsp {
         public Variant to_variant () {
             var variant = new VariantDict ();
 
-            Variant[] changes_list = {};
-            foreach (var change in changes)
-                changes_list += change.to_variant ();
-            variant.insert_value ("changes", changes_list);
+            if (document_changes.length > 0) {
+                Variant[] list = {};
+                foreach (var change in document_changes)
+                    list += change.to_variant ();
+                variant.insert_value ("documentChanges", list);
+            }
             if (change_annotations != null) {
                 var annotations_dict = new VariantDict ();
                 foreach (unowned var key in change_annotations.get_keys ())
@@ -273,6 +311,48 @@ namespace Lsp {
             }
 
             return variant.end ();
+        }
+    }
+
+    /**
+     * The result returned from the {@link workspace/applyEdit} request.
+     */
+    public class ApplyWorkspaceEditResult {
+        /**
+         * Indicates whether the edit was applied or not.
+         */
+        public bool applied { get; set; }
+
+        /**
+         * An optional textual description for why the edit was not applied.
+         */
+        public string? failure_reason { get; set; }
+
+        /**
+         * Depending on the client's failure handling strategy, the client
+         * might return the actual edits it applied, so that the server can
+         * reconcile with its state.
+         */
+        public ResourceOperation[]? failed_change { get; set; }
+
+        public ApplyWorkspaceEditResult (bool applied = true, string? failure_reason = null) {
+            this.applied = applied;
+            this.failure_reason = failure_reason;
+        }
+
+        public ApplyWorkspaceEditResult.from_variant (Variant variant) throws DeserializeError {
+            applied = (bool) expect_property (variant, "applied", VariantType.BOOLEAN, "ApplyWorkspaceEditResult");
+            var prop = lookup_property (variant, "failureReason", VariantType.STRING, "ApplyWorkspaceEditResult");
+            if (prop != null)
+                failure_reason = (string) prop;
+        }
+
+        public Variant to_variant () {
+            var dict = new VariantDict ();
+            dict.insert_value ("applied", new Variant.boolean (applied));
+            if (failure_reason != null)
+                dict.insert_value ("failureReason", failure_reason);
+            return dict.end ();
         }
     }
 }

@@ -97,8 +97,49 @@ public class Lsp.Editor : Jsonrpc.Server {
     }
 
     private async void handle_call_async (Jsonrpc.Client client, string method, Variant id, Variant parameters) {
-        if (exited)
+        if (exited) {
+            try {
+                yield client.reply_error_async (id, Jsonrpc.ClientError.INVALID_REQUEST, "editor is shutting down", cancellable);
+            } catch (Error e) {
+                // ignore
+            }
             return;
+        }
+
+        try {
+            switch (method) {
+                case "workspace/applyEdit":
+                    var edit = new WorkspaceEdit.from_variant (expect_property (parameters, "edit", VariantType.VARDICT, "ApplyWorkspaceEditParams"));
+                    var label_prop = lookup_property (parameters, "label", VariantType.STRING, "ApplyWorkspaceEditParams");
+                    var result = yield apply_workspace_edit_async (edit, (string?) label_prop);
+                    yield client.reply_async (id, result.to_variant (), cancellable);
+                    break;
+
+                default:
+                    yield client.reply_error_async (id, Jsonrpc.ClientError.METHOD_NOT_FOUND, null, cancellable);
+                    break;
+            }
+        } catch (Error e) {
+            warning ("handling call failed - %s", e.message);
+            try {
+                yield client.reply_error_async (id, Jsonrpc.ClientError.INTERNAL_ERROR, e.message, cancellable);
+            } catch (Error e2) {
+                // ignore
+            }
+        }
+    }
+
+    /**
+     * The workspace/applyEdit request is sent from the server to the
+     * client to apply a workspace edit.
+     *
+     * @param edit  the workspace edit to apply
+     * @param label an optional label describing the edit
+     *
+     * @return the result indicating whether the edit was applied
+     */
+    protected virtual async ApplyWorkspaceEditResult apply_workspace_edit_async (WorkspaceEdit edit, string? label = null) throws Error {
+        throw new ProtocolError.METHOD_NOT_IMPLEMENTED ("workspace/applyEdit is not implemented");
     }
 
     protected override void client_accepted (Jsonrpc.Client client) {

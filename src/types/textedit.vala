@@ -97,7 +97,7 @@ namespace Lsp {
      * @since 3.16.0
      */
     [Compact (opaque = true)]
-    [CCode (ref_function = "lsp_change_annotation_ref", unref_function = "Lsp_change_annotation_unref")]
+    [CCode (ref_function = "lsp_change_annotation_ref", unref_function = "lsp_change_annotation_unref")]
     public class ChangeAnnotation {
         private int ref_count = 1;
 
@@ -140,6 +140,19 @@ namespace Lsp {
             this.label = label;
             this.needs_confirmation = needs_confirmation;
             this.description = description;
+        }
+
+        /**
+         * Deserialize this from a {@link GLib.Variant}
+         */
+        public ChangeAnnotation.from_variant (Variant variant) throws DeserializeError {
+            label = (string) expect_property (variant, "label", VariantType.STRING, "ChangeAnnotation");
+            var prop = lookup_property (variant, "needsConfirmation", VariantType.BOOLEAN, "ChangeAnnotation");
+            if (prop != null)
+                needs_confirmation = (bool) prop;
+            prop = lookup_property (variant, "description", VariantType.STRING, "ChangeAnnotation");
+            if (prop != null)
+                description = (string) prop;
         }
 
         /**

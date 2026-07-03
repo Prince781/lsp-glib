@@ -194,4 +194,28 @@ public class Lsp.Client : Object {
         dict.insert_value ("message", message);
         yield client.send_notification_async ("window/logMessage", dict.end (), server.cancellable);
     }
+
+    /**
+     * The workspace/applyEdit request is sent from the server to the
+     * client to apply a workspace edit.
+     *
+     * @param edit  the workspace edit to apply
+     * @param label an optional label describing the edit
+     *
+     * @return the result indicating whether the edit was applied
+     */
+    public async ApplyWorkspaceEditResult apply_edit_async (WorkspaceEdit edit, string? label = null) throws Error {
+        var dict = new VariantDict ();
+        dict.insert_value ("edit", edit.to_variant ());
+        if (label != null)
+            dict.insert_value ("label", label);
+
+        Variant? return_value;
+        yield client.call_async ("workspace/applyEdit", dict.end (), server.cancellable, out return_value);
+
+        if (return_value == null)
+            throw new DeserializeError.INVALID_TYPE ("expected result from workspace/applyEdit");
+
+        return new ApplyWorkspaceEditResult.from_variant (return_value);
+    }
 }
