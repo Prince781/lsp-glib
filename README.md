@@ -16,6 +16,94 @@ Design ideas:
     pointer chasing
   - No use of `libgee`. Prefer built-in GLib data structures
 
+### Protocol Support
+
+#### Lifecycle Messages
+
+- [x] `initialize`
+- [x] `initialized`
+- [ ] `client/registerCapability`
+- [ ] `client/unregisterCapability`
+- [x] `$/setTrace`
+- [x] `$/logTrace`
+- [x] `shutdown`
+- [x] `exit`
+
+#### Document Synchronization
+
+- [x] `textDocument/didOpen`
+- [x] `textDocument/didChange`
+- [ ] `textDocument/willSave` (client capability only)
+- [ ] `textDocument/willSaveWaitUntil`
+- [x] `textDocument/didSave`
+- [x] `textDocument/didClose`
+- [ ] `textDocument/didRename`
+
+#### Language Features
+
+- [x] `textDocument/completion`
+- [ ] `completionItem/resolve`
+- [x] `textDocument/hover`
+- [x] `textDocument/signatureHelp`
+- [x] `textDocument/codeAction`
+- [ ] `codeAction/resolve`
+- [x] `textDocument/publishDiagnostics`
+- [ ] `textDocument/pullDiagnostics`
+- [ ] `textDocument/declaration` (capability field only)
+- [ ] `textDocument/definition` (capability field only)
+- [ ] `textDocument/typeDefinition` (capability field only)
+- [ ] `textDocument/implementation` (capability field only)
+- [ ] `textDocument/references` (capability field only)
+- [ ] `textDocument/documentHighlight` (capability field only)
+- [ ] `textDocument/documentSymbol` (capability field only)
+- [ ] `textDocument/codeLens` (types only)
+- [ ] `codeLens/resolve`
+- [ ] `textDocument/foldingRange`
+- [ ] `textDocument/selectionRange`
+- [ ] `textDocument/documentLink` (types only)
+- [ ] `documentLink/resolve`
+- [ ] `textDocument/documentColor`
+- [ ] `textDocument/colorPresentation`
+- [ ] `textDocument/formatting` (capability field only)
+- [ ] `textDocument/rangeFormatting` (capability field only)
+- [ ] `textDocument/onTypeFormatting` (types only)
+- [ ] `textDocument/rename` (types only)
+- [ ] `textDocument/prepareRename`
+- [ ] `textDocument/semanticTokens`
+- [ ] `textDocument/moniker`
+- [ ] `textDocument/inlineValue`
+- [ ] `textDocument/inlayHint`
+- [ ] `textDocument/prepareCallHierarchy`
+- [ ] `textDocument/prepareTypeHierarchy`
+- [ ] `textDocument/linkedEditingRange`
+
+#### Workspace Features
+
+- [ ] `workspace/symbol` (capability field only)
+- [ ] `workspace/executeCommand`
+- [ ] `workspace/applyEdit`
+- [ ] `workspace/didChangeConfiguration`
+- [ ] `workspace/didChangeWatchedFiles`
+- [ ] `workspace/didChangeWorkspaceFolders`
+- [ ] `workspace/willCreateFiles`
+- [ ] `workspace/didCreateFiles`
+- [ ] `workspace/willRenameFiles`
+- [ ] `workspace/didRenameFiles`
+- [ ] `workspace/willDeleteFiles`
+- [ ] `workspace/didDeleteFiles`
+- [ ] `workspace/didChangeConfiguration`
+- [ ] `workspace/textDocumentContent`
+
+#### Window Features
+
+- [x] `window/showMessage`
+- [x] `window/showMessageRequest`
+- [x] `window/logMessage`
+- [x] `window/showDocument`
+
+#### Telemetry
+
+- [ ] `telemetry/event`
 
 ### Docs
 

@@ -163,6 +163,30 @@ public abstract class Lsp.Server : Jsonrpc.Server {
                     }
                     break;
 
+                case "textDocument/hover":
+                    var tdi_variant = expect_property (parameters, "textDocument", VariantType.VARDICT, "HoverParams");
+                    var pos_variant = expect_property (parameters, "position", VariantType.VARDICT, "HoverParams");
+                    Hover? hover_result = yield hover_async (lsp_client,
+                        TextDocumentIdentifier.from_variant (tdi_variant),
+                        Position.from_variant (pos_variant));
+                    if (hover_result == null)
+                        yield client.reply_async (id, new Variant.maybe (VariantType.VARIANT, null), cancellable);
+                    else
+                        yield client.reply_async (id, hover_result.to_variant (), cancellable);
+                    break;
+
+                case "textDocument/signatureHelp":
+                    var tdi_variant = expect_property (parameters, "textDocument", VariantType.VARDICT, "SignatureHelpParams");
+                    var pos_variant = expect_property (parameters, "position", VariantType.VARDICT, "SignatureHelpParams");
+                    SignatureHelp? sig_result = yield signature_help_async (lsp_client,
+                        TextDocumentIdentifier.from_variant (tdi_variant),
+                        Position.from_variant (pos_variant));
+                    if (sig_result == null)
+                        yield client.reply_async (id, new Variant.maybe (VariantType.VARIANT, null), cancellable);
+                    else
+                        yield client.reply_async (id, sig_result.to_variant (), cancellable);
+                    break;
+
                 case "textDocument/codeAction":
                     var text_document = TextDocumentIdentifier.from_variant (expect_property (parameters, "textDocument", VariantType.VARIANT, "CodeActionParams"));
                     var range = Range.from_variant (expect_property (parameters, "range", VariantType.VARIANT, "CodeActionParams"));
@@ -379,6 +403,32 @@ public abstract class Lsp.Server : Jsonrpc.Server {
      */
     protected virtual async CompletionItem[]? completion_async (Client client, TextDocumentIdentifier text_document, Position position, CompletionContext? context) throws Error {
         throw new ProtocolError.METHOD_NOT_IMPLEMENTED ("textDocument/completion is not implemented");
+    }
+
+    /**
+     * The hover request is sent from the client to the server to request
+     * hover information at a given text document position.
+     *
+     * @param text_document the document to hover over
+     * @param position      the position inside the document
+     *
+     * @return the hover information, or null if none
+     */
+    protected virtual async Hover? hover_async (Client client, TextDocumentIdentifier text_document, Position position) throws Error {
+        throw new ProtocolError.METHOD_NOT_IMPLEMENTED ("textDocument/hover is not implemented");
+    }
+
+    /**
+     * The signature help request is sent from the client to the server
+     * to request signature information at a given cursor position.
+     *
+     * @param text_document the document containing the call
+     * @param position      the position inside the document
+     *
+     * @return signature help information, or null if none
+     */
+    protected virtual async SignatureHelp? signature_help_async (Client client, TextDocumentIdentifier text_document, Position position) throws Error {
+        throw new ProtocolError.METHOD_NOT_IMPLEMENTED ("textDocument/signatureHelp is not implemented");
     }
 
     /**

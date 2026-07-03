@@ -333,6 +333,62 @@ public class Lsp.Editor : Jsonrpc.Server {
     }
 
     /**
+     * The hover request is sent from the client to the server to request
+     * hover information at a given text document position.
+     *
+     * @param uri      the URI of the document to hover over
+     * @param position the position inside the document
+     *
+     * @return the hover information, or null if none
+     */
+    public async Hover? hover_async (Uri uri, Position position) throws Error {
+        if (client == null)
+            throw new Lsp.ProtocolError.NO_CONNECTION ("not connected to a client");
+        if (init_result == null)
+            throw new Lsp.ProtocolError.CLIENT_NOT_INITIALIZED ("client not initialized");
+
+        var parameters = new VariantDict ();
+        parameters.insert_value ("textDocument", TextDocumentIdentifier.unversioned (uri).to_variant ());
+        parameters.insert_value ("position", position.to_variant ());
+
+        Variant? return_value;
+        yield client.call_async ("textDocument/hover", parameters.end (), cancellable, out return_value);
+
+        if (return_value == null)
+            return null;
+
+        return new Hover.from_variant (return_value);
+    }
+
+    /**
+     * The signature help request is sent from the client to the server
+     * to request signature information at a given cursor position.
+     *
+     * @param uri      the URI of the document containing the call
+     * @param position the position inside the document
+     *
+     * @return signature help information, or null if none
+     */
+    public async SignatureHelp? signature_help_async (Uri uri, Position position) throws Error {
+        if (client == null)
+            throw new Lsp.ProtocolError.NO_CONNECTION ("not connected to a client");
+        if (init_result == null)
+            throw new Lsp.ProtocolError.CLIENT_NOT_INITIALIZED ("client not initialized");
+
+        var parameters = new VariantDict ();
+        parameters.insert_value ("textDocument", TextDocumentIdentifier.unversioned (uri).to_variant ());
+        parameters.insert_value ("position", position.to_variant ());
+
+        Variant? return_value;
+        yield client.call_async ("textDocument/signatureHelp", parameters.end (), cancellable, out return_value);
+
+        if (return_value == null)
+            return null;
+
+        return new SignatureHelp.from_variant (return_value);
+    }
+
+    /**
      * The code action request is sent from the client to the server to compute
      * commands for a given text document and range. These commands are typically code
      * fixes to either fix problems or to beautify/refactor code. The result of a
