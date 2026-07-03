@@ -163,6 +163,22 @@ public abstract class Lsp.Server : Jsonrpc.Server {
                     }
                     break;
 
+                case "textDocument/documentHighlight":
+                    var tdi_variant = expect_property (parameters, "textDocument", VariantType.VARDICT, "DocumentHighlightParams");
+                    var pos_variant = expect_property (parameters, "position", VariantType.VARDICT, "DocumentHighlightParams");
+                    DocumentHighlight[]? highlights = yield document_highlight_async (lsp_client,
+                        TextDocumentIdentifier.from_variant (tdi_variant),
+                        Position.from_variant (pos_variant));
+                    if (highlights == null) {
+                        yield client.reply_async (id, new Variant.maybe (VariantType.VARIANT, null), cancellable);
+                    } else {
+                        Variant[] hl_variants = {};
+                        foreach (unowned var hl in highlights)
+                            hl_variants += hl.to_variant ();
+                        yield client.reply_async (id, hl_variants, cancellable);
+                    }
+                    break;
+
                 case "textDocument/hover":
                     var tdi_variant = expect_property (parameters, "textDocument", VariantType.VARDICT, "HoverParams");
                     var pos_variant = expect_property (parameters, "position", VariantType.VARDICT, "HoverParams");
@@ -429,6 +445,23 @@ public abstract class Lsp.Server : Jsonrpc.Server {
      */
     protected virtual async SignatureHelp? signature_help_async (Client client, TextDocumentIdentifier text_document, Position position) throws Error {
         throw new ProtocolError.METHOD_NOT_IMPLEMENTED ("textDocument/signatureHelp is not implemented");
+    }
+
+    /**
+     * The document highlight request is sent from the client to the
+     * server to resolve document highlights for a given text document
+     * position.
+     *
+     * For programming languages, this usually highlights all references
+     * to the symbol scoped to this file.
+     *
+     * @param text_document the document to find highlights in
+     * @param position      the position inside the document
+     *
+     * @return a list of document highlights, or null if there are none
+     */
+    protected virtual async DocumentHighlight[]? document_highlight_async (Client client, TextDocumentIdentifier text_document, Position position) throws Error {
+        throw new ProtocolError.METHOD_NOT_IMPLEMENTED ("textDocument/documentHighlight is not implemented");
     }
 
     /**

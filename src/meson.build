@@ -15,6 +15,7 @@ sources = [version_file] + files([
   'types/completion.vala',
   'types/diagnostic.vala',
   'types/error.vala',
+  'types/highlight.vala',
   'types/hover.vala',
   'types/initialization.vala',
   'types/location.vala',

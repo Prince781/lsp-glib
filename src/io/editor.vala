@@ -333,6 +333,38 @@ public class Lsp.Editor : Jsonrpc.Server {
     }
 
     /**
+     * The document highlight request is sent from the client to the
+     * server to resolve document highlights for a given text document
+     * position.
+     *
+     * @param uri      the URI of the document to find highlights in
+     * @param position the position inside the document
+     *
+     * @return a list of document highlights, or null if there are none
+     */
+    public async DocumentHighlight[]? document_highlight_async (Uri uri, Position position) throws Error {
+        if (client == null)
+            throw new Lsp.ProtocolError.NO_CONNECTION ("not connected to a client");
+        if (init_result == null)
+            throw new Lsp.ProtocolError.CLIENT_NOT_INITIALIZED ("client not initialized");
+
+        var parameters = new VariantDict ();
+        parameters.insert_value ("textDocument", TextDocumentIdentifier.unversioned (uri).to_variant ());
+        parameters.insert_value ("position", position.to_variant ());
+
+        Variant? return_value;
+        yield client.call_async ("textDocument/documentHighlight", parameters.end (), cancellable, out return_value);
+
+        if (return_value == null)
+            return null;
+
+        DocumentHighlight[] items = {};
+        foreach (var item in return_value)
+            items += new DocumentHighlight.from_variant (item);
+        return items.length > 0 ? items : null;
+    }
+
+    /**
      * The hover request is sent from the client to the server to request
      * hover information at a given text document position.
      *
