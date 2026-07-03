@@ -80,17 +80,8 @@ namespace Lsp {
 
             value = (string) expect_property (dict, "value", VariantType.STRING, "InlayHintLabelPart");
 
-            if ((prop = lookup_property (dict, "tooltip", VariantType.ANY, "InlayHintLabelPart")) != null) {
-                if (prop.is_of_type (VariantType.STRING))
-                    tooltip = new MarkupContent (MarkupKind.PLAINTEXT, (string) prop);
-                else if (prop.is_of_type (VariantType.VARDICT))
-                    tooltip = new MarkupContent (
-                        (MarkupKind) (int64) expect_property (prop, "kind", VariantType.INT64, "MarkupContent"),
-                        (string) expect_property (prop, "value", VariantType.STRING, "MarkupContent")
-                    );
-                else
-                    throw new DeserializeError.INVALID_TYPE ("InlayHintLabelPart.tooltip must be a string or a MarkupContent");
-            }
+            if ((prop = lookup_property (dict, "tooltip", VariantType.ANY, "InlayHintLabelPart")) != null)
+                tooltip = new MarkupContent.from_variant (prop);
 
             if ((prop = lookup_property (dict, "location", VariantType.VARDICT, "InlayHintLabelPart")) != null)
                 location = Location.from_variant (prop);
@@ -118,6 +109,18 @@ namespace Lsp {
                 dict.insert_value ("command", command.to_variant ());
             return dict.end ();
         }
+    }
+
+    /**
+     * Padding flags for inlay hints.
+     *
+     * @since 3.17.0
+     */
+    [Flags]
+    public enum InlayHintPadding {
+        NONE,
+        LEFT,
+        RIGHT;
     }
 
     /**
@@ -171,14 +174,11 @@ namespace Lsp {
         public MarkupContent? tooltip { get; set; }
 
         /**
-         * Whether this hint should be shown with padding to the left.
+         * Padding for this hint.
+         *
+         * @since 3.17.0
          */
-        public bool padding_left { get; set; }
-
-        /**
-         * Whether this hint should be shown with padding to the right.
-         */
-        public bool padding_right { get; set; }
+        public InlayHintPadding padding { get; set; default = NONE; }
 
         /**
          * A data entry field that is preserved between an inlay hint
@@ -208,23 +208,14 @@ namespace Lsp {
                 text_edits = edits;
             }
 
-            if ((prop = lookup_property (dict, "tooltip", VariantType.ANY, "InlayHint")) != null) {
-                if (prop.is_of_type (VariantType.STRING))
-                    tooltip = new MarkupContent (MarkupKind.PLAINTEXT, (string) prop);
-                else if (prop.is_of_type (VariantType.VARDICT))
-                    tooltip = new MarkupContent (
-                        (MarkupKind) (int64) expect_property (prop, "kind", VariantType.INT64, "MarkupContent"),
-                        (string) expect_property (prop, "value", VariantType.STRING, "MarkupContent")
-                    );
-                else
-                    throw new DeserializeError.INVALID_TYPE ("InlayHint.tooltip must be a string or a MarkupContent");
-            }
+            if ((prop = lookup_property (dict, "tooltip", VariantType.ANY, "InlayHint")) != null)
+                tooltip = new MarkupContent.from_variant (prop);
 
-            if ((prop = lookup_property (dict, "paddingLeft", VariantType.BOOLEAN, "InlayHint")) != null)
-                padding_left = (bool) prop;
+            if ((prop = lookup_property (dict, "paddingLeft", VariantType.BOOLEAN, "InlayHint")) != null && (bool)prop)
+                padding |= InlayHintPadding.LEFT;
 
-            if ((prop = lookup_property (dict, "paddingRight", VariantType.BOOLEAN, "InlayHint")) != null)
-                padding_right = (bool) prop;
+            if ((prop = lookup_property (dict, "paddingRight", VariantType.BOOLEAN, "InlayHint")) != null && (bool)prop)
+                padding |= InlayHintPadding.RIGHT;
 
             if ((prop = lookup_property (dict, "data", VariantType.VARIANT, "InlayHint")) != null)
                 data = prop;
@@ -252,9 +243,9 @@ namespace Lsp {
                     dict.insert_value ("tooltip", doc.end ());
                 }
             }
-            if (padding_left)
+            if ((padding & InlayHintPadding.LEFT) != 0)
                 dict.insert_value ("paddingLeft", new Variant.boolean (true));
-            if (padding_right)
+            if ((padding & InlayHintPadding.RIGHT) != 0)
                 dict.insert_value ("paddingRight", new Variant.boolean (true));
             if (data != null)
                 dict.insert_value ("data", data);

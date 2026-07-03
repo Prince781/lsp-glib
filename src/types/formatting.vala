@@ -20,6 +20,19 @@
 
 namespace Lsp {
     /**
+     * Flags for formatting options.
+     *
+     * @since 3.15.0
+     */
+    [Flags]
+    public enum FormattingOptionFlags {
+        NONE,
+        TRIM_TRAILING_WHITESPACE,
+        INSERT_FINAL_NEWLINE,
+        TRIM_FINAL_NEWLINES;
+    }
+
+    /**
      * Formatting options for a {@link textDocument/formatting} request.
      */
     public class FormattingOptions {
@@ -34,27 +47,11 @@ namespace Lsp {
         public bool insert_spaces { get; set; }
 
         /**
-         * Trim trailing whitespace on each line.
+         * Formatting option flags.
          *
          * @since 3.15.0
          */
-        public bool trim_trailing_whitespace { get; set; }
-
-        /**
-         * Insert a newline character at the end of the file if one
-         * does not exist.
-         *
-         * @since 3.15.0
-         */
-        public bool insert_final_newline { get; set; }
-
-        /**
-         * Trim all newlines after the final newline at the end of
-         * the file.
-         *
-         * @since 3.15.0
-         */
-        public bool trim_final_newlines { get; set; }
+        public FormattingOptionFlags flags { get; set; default = NONE; }
 
         public FormattingOptions (int tab_size, bool insert_spaces) {
             this.tab_size = tab_size;
@@ -65,23 +62,23 @@ namespace Lsp {
             tab_size = (int) (int64) expect_property (dict, "tabSize", VariantType.INT64, "FormattingOptions");
             insert_spaces = (bool) expect_property (dict, "insertSpaces", VariantType.BOOLEAN, "FormattingOptions");
             Variant? prop;
-            if ((prop = lookup_property (dict, "trimTrailingWhitespace", VariantType.BOOLEAN, "FormattingOptions")) != null)
-                trim_trailing_whitespace = (bool) prop;
-            if ((prop = lookup_property (dict, "insertFinalNewline", VariantType.BOOLEAN, "FormattingOptions")) != null)
-                insert_final_newline = (bool) prop;
-            if ((prop = lookup_property (dict, "trimFinalNewlines", VariantType.BOOLEAN, "FormattingOptions")) != null)
-                trim_final_newlines = (bool) prop;
+            if ((prop = lookup_property (dict, "trimTrailingWhitespace", VariantType.BOOLEAN, "FormattingOptions")) != null && (bool)prop)
+                flags |= FormattingOptionFlags.TRIM_TRAILING_WHITESPACE;
+            if ((prop = lookup_property (dict, "insertFinalNewline", VariantType.BOOLEAN, "FormattingOptions")) != null && (bool)prop)
+                flags |= FormattingOptionFlags.INSERT_FINAL_NEWLINE;
+            if ((prop = lookup_property (dict, "trimFinalNewlines", VariantType.BOOLEAN, "FormattingOptions")) != null && (bool)prop)
+                flags |= FormattingOptionFlags.TRIM_FINAL_NEWLINES;
         }
 
         public Variant to_variant () {
             var dict = new VariantDict ();
             dict.insert_value ("tabSize", new Variant.int64 (tab_size));
             dict.insert_value ("insertSpaces", new Variant.boolean (insert_spaces));
-            if (trim_trailing_whitespace)
+            if ((flags & FormattingOptionFlags.TRIM_TRAILING_WHITESPACE) != 0)
                 dict.insert_value ("trimTrailingWhitespace", new Variant.boolean (true));
-            if (insert_final_newline)
+            if ((flags & FormattingOptionFlags.INSERT_FINAL_NEWLINE) != 0)
                 dict.insert_value ("insertFinalNewline", new Variant.boolean (true));
-            if (trim_final_newlines)
+            if ((flags & FormattingOptionFlags.TRIM_FINAL_NEWLINES) != 0)
                 dict.insert_value ("trimFinalNewlines", new Variant.boolean (true));
             return dict.end ();
         }

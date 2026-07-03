@@ -196,8 +196,20 @@ namespace Lsp {
     public class SymbolInformation {
         /**
          * Whether this symbol is deprecated.
+         *
+         * This is a convenience property that delegates to {@link tags}.
          */
-        public bool deprecated { get; set; }
+        public bool deprecated {
+            get {
+                return (tags & SymbolTag.DEPRECATED) != 0;
+            }
+            set {
+                if (value)
+                    tags |= SymbolTag.DEPRECATED;
+                else
+                    tags &= ~SymbolTag.DEPRECATED;
+            }
+        }
 
         /**
          * The name of this symbol.
@@ -245,6 +257,9 @@ namespace Lsp {
                     parsed_tags |= (SymbolTag) (int) tag_v.get_int64 ();
                 tags = parsed_tags;
             }
+
+            if ((prop = lookup_property (dict, "deprecated", VariantType.BOOLEAN, "SymbolInformation")) != null && (bool)prop)
+                tags |= SymbolTag.DEPRECATED;
 
             if ((prop = lookup_property (dict, "containerName", VariantType.STRING, "SymbolInformation")) != null)
                 container_name = (string) prop;

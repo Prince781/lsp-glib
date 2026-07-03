@@ -86,5 +86,22 @@ namespace Lsp {
             this.kind = kind;
             this.value = value;
         }
+
+        /**
+         * Deserialize from a {@link GLib.Variant}. Accepts either a
+         * plain string (treated as plaintext) or a dict with
+         * {@link MarkupContent.kind} and {@link MarkupContent.value} properties.
+         */
+        public MarkupContent.from_variant (Variant variant) throws DeserializeError {
+            if (variant.is_of_type (VariantType.STRING)) {
+                kind = MarkupKind.PLAINTEXT;
+                value = (string) variant;
+            } else if (variant.is_of_type (VariantType.VARDICT)) {
+                kind = (MarkupKind) (int64) expect_property (variant, "kind", VariantType.INT64, "MarkupContent");
+                value = (string) expect_property (variant, "value", VariantType.STRING, "MarkupContent");
+            } else {
+                throw new DeserializeError.INVALID_TYPE ("MarkupContent must be a string or a dict");
+            }
+        }
     }
 }

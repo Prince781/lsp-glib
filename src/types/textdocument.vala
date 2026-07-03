@@ -261,8 +261,10 @@ namespace Lsp {
             var dict = new VariantDict ();
 
             dict.insert_value ("uri", uri.to_string ());
-            if (version != null)
-                dict.insert_value ("version", version);
+            if (version != null) {
+                int64 new_version = version;
+                dict.insert_value ("version", new_version);
+            }
 
             return dict.end ();
         }
