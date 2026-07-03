@@ -203,6 +203,37 @@ public abstract class Lsp.Server : Jsonrpc.Server {
                         yield client.reply_async (id, sig_result.to_variant (), cancellable);
                     break;
 
+                case "textDocument/formatting":
+                    var params = new DocumentFormattingParams.from_variant (parameters);
+                    TextEdit[]? fmt_result = yield formatting_async (lsp_client,
+                        params.text_document,
+                        params.options);
+                    if (fmt_result == null) {
+                        yield client.reply_async (id, new Variant.maybe (VariantType.VARIANT, null), cancellable);
+                    } else {
+                        Variant[] edit_variants = {};
+                        foreach (var edit in fmt_result)
+                            edit_variants += edit.to_variant ();
+                        yield client.reply_async (id, edit_variants, cancellable);
+                    }
+                    break;
+
+                case "textDocument/rangeFormatting":
+                    var rng_params = new DocumentRangeFormattingParams.from_variant (parameters);
+                    TextEdit[]? rng_result = yield range_formatting_async (lsp_client,
+                        rng_params.text_document,
+                        rng_params.range,
+                        rng_params.options);
+                    if (rng_result == null) {
+                        yield client.reply_async (id, new Variant.maybe (VariantType.VARIANT, null), cancellable);
+                    } else {
+                        Variant[] edit_variants = {};
+                        foreach (var edit in rng_result)
+                            edit_variants += edit.to_variant ();
+                        yield client.reply_async (id, edit_variants, cancellable);
+                    }
+                    break;
+
                 case "textDocument/declaration":
                     var tdi_variant = expect_property (parameters, "textDocument", VariantType.VARDICT, "DeclarationParams");
                     var pos_variant = expect_property (parameters, "position", VariantType.VARDICT, "DeclarationParams");
@@ -717,6 +748,33 @@ public abstract class Lsp.Server : Jsonrpc.Server {
      */
     protected virtual async CodeLens[]? code_lens_async (Client client, TextDocumentIdentifier text_document) throws Error {
         throw new ProtocolError.METHOD_NOT_IMPLEMENTED ("textDocument/codeLens is not implemented");
+    }
+
+    /**
+     * The document formatting request is sent from the client to the
+     * server to format a whole document.
+     *
+     * @param text_document the document to format
+     * @param options       the formatting options
+     *
+     * @return a list of text edits, or null if no formatting is needed
+     */
+    protected virtual async TextEdit[]? formatting_async (Client client, TextDocumentIdentifier text_document, FormattingOptions options) throws Error {
+        throw new ProtocolError.METHOD_NOT_IMPLEMENTED ("textDocument/formatting is not implemented");
+    }
+
+    /**
+     * The document range formatting request is sent from the client to
+     * the server to format a given range in a document.
+     *
+     * @param text_document the document to format
+     * @param range         the range to format
+     * @param options       the formatting options
+     *
+     * @return a list of text edits, or null if no formatting is needed
+     */
+    protected virtual async TextEdit[]? range_formatting_async (Client client, TextDocumentIdentifier text_document, Range range, FormattingOptions options) throws Error {
+        throw new ProtocolError.METHOD_NOT_IMPLEMENTED ("textDocument/rangeFormatting is not implemented");
     }
 
     /**

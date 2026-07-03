@@ -792,6 +792,65 @@ public class Lsp.Editor : Jsonrpc.Server {
     }
 
     /**
+     * The document formatting request is sent from the client to the
+     * server to format a whole document.
+     *
+     * @param uri      the URI of the document to format
+     * @param options  the formatting options
+     *
+     * @return a list of text edits, or null if no formatting is needed
+     */
+    public async TextEdit[]? formatting_async (Uri uri, FormattingOptions options) throws Error {
+        if (client == null)
+            throw new Lsp.ProtocolError.NO_CONNECTION ("not connected to a client");
+        if (init_result == null)
+            throw new Lsp.ProtocolError.CLIENT_NOT_INITIALIZED ("client not initialized");
+
+        var parameters = new DocumentFormattingParams (TextDocumentIdentifier.unversioned (uri), options);
+
+        Variant? return_value;
+        yield client.call_async ("textDocument/formatting", parameters.to_variant (), cancellable, out return_value);
+
+        if (return_value == null)
+            return null;
+
+        TextEdit[] items = {};
+        foreach (var item in return_value)
+            items += TextEdit.from_variant (item);
+        return items.length > 0 ? items : null;
+    }
+
+    /**
+     * The document range formatting request is sent from the client to
+     * the server to format a given range in a document.
+     *
+     * @param uri      the URI of the document to format
+     * @param range    the range to format
+     * @param options  the formatting options
+     *
+     * @return a list of text edits, or null if no formatting is needed
+     */
+    public async TextEdit[]? range_formatting_async (Uri uri, Range range, FormattingOptions options) throws Error {
+        if (client == null)
+            throw new Lsp.ProtocolError.NO_CONNECTION ("not connected to a client");
+        if (init_result == null)
+            throw new Lsp.ProtocolError.CLIENT_NOT_INITIALIZED ("client not initialized");
+
+        var parameters = new DocumentRangeFormattingParams (TextDocumentIdentifier.unversioned (uri), range, options);
+
+        Variant? return_value;
+        yield client.call_async ("textDocument/rangeFormatting", parameters.to_variant (), cancellable, out return_value);
+
+        if (return_value == null)
+            return null;
+
+        TextEdit[] items = {};
+        foreach (var item in return_value)
+            items += TextEdit.from_variant (item);
+        return items.length > 0 ? items : null;
+    }
+
+    /**
      * The workspace symbol request is sent from the client to the server
      * to list project-wide symbols matching a given query string.
      *
