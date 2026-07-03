@@ -77,7 +77,7 @@ public class Lsp.Editor : Jsonrpc.Server {
                 case "textDocument/publishDiagnostics":
                     var pd_uri = expect_property (parameters, "uri", VariantType.STRING, "PublishDiagnosticsParams");
                     var pd_version = lookup_property (parameters, "version", VariantType.INT64, "PublishDiagnosticsParams");
-                    int64? version = pd_version != null ? (int64?)pd_version : null;
+                    int64? version = pd_version != null ? (int64?)pd_version.get_int64 () : null;
                     Diagnostic[] diags = {};
                     foreach (var diag in expect_property (parameters, "diagnostics", VariantType.ARRAY, "PublishDiagnosticsParams"))
                         diags += new Diagnostic.from_variant (diag);
@@ -290,6 +290,46 @@ public class Lsp.Editor : Jsonrpc.Server {
 
         yield client.send_notification_async ("$/setTrace", parameters.end (), cancellable);
         this.trace_value = trace_value;         // synchronize on success
+    }
+
+    /**
+     * The completion request is sent from the client to the server to
+     * compute completion items at a given cursor position.
+     *
+     * @param uri      the URI of the document for which completions are
+     *                 requested
+     * @param position the position at which completions are requested
+     * @param context  additional context about the completion trigger,
+     *                 or null if not provided by the server
+     *
+     * @return a list of completion items, or null if there are none
+     */
+    public async CompletionItem[]? completion_async (Uri uri, Position position,
+                                                     CompletionContext? context = null) throws Error {
+        if (client == null)
+            throw new Lsp.ProtocolError.NO_CONNECTION ("not connected to a client");
+        if (init_result == null)
+            throw new Lsp.ProtocolError.CLIENT_NOT_INITIALIZED ("client not initialized");
+
+        var parameters = new VariantDict ();
+        parameters.insert_value ("textDocument", TextDocumentIdentifier.unversioned (uri).to_variant ());
+        parameters.insert_value ("position", position.to_variant ());
+        if (context != null)
+            parameters.insert_value ("context", context.to_variant ());
+
+        Variant? return_value;
+        yield client.call_async ("textDocument/completion", parameters.end (), cancellable, out return_value);
+
+        if (return_value == null)
+            return null;
+
+        CompletionItem[] items = {};
+        foreach (var item in return_value) {
+            if (!item.is_of_type (VariantType.VARDICT))
+                throw new DeserializeError.UNEXPECTED_ELEMENT ("completion item is not a structured element");
+            items += new CompletionItem.from_variant (item);
+        }
+        return items.length > 0 ? items : null;
     }
 
     /**

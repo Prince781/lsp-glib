@@ -145,6 +145,24 @@ public abstract class Lsp.Server : Jsonrpc.Server {
                     yield client.reply_async (id, new Variant.maybe (VariantType.VARIANT, null), cancellable);
                     break;
 
+                case "textDocument/completion":
+                    var tdi_variant = expect_property (parameters, "textDocument", VariantType.VARDICT, "CompletionParams");
+                    var pos_variant = expect_property (parameters, "position", VariantType.VARDICT, "CompletionParams");
+                    var ctx_variant = lookup_property (parameters, "context", VariantType.VARDICT, "CompletionParams");
+                    CompletionContext? context = ctx_variant != null ? new CompletionContext.from_variant (ctx_variant) : null;
+                    CompletionItem[]? items = yield completion_async (lsp_client,
+                        TextDocumentIdentifier.from_variant (tdi_variant),
+                        Position.from_variant (pos_variant), context);
+                    if (items == null) {
+                        yield client.reply_async (id, new Variant.maybe (VariantType.VARIANT, null), cancellable);
+                    } else {
+                        Variant[] item_variants = {};
+                        foreach (unowned var item in items)
+                            item_variants += item.to_variant ();
+                        yield client.reply_async (id, item_variants, cancellable);
+                    }
+                    break;
+
                 case "textDocument/codeAction":
                     var text_document = TextDocumentIdentifier.from_variant (expect_property (parameters, "textDocument", VariantType.VARIANT, "CodeActionParams"));
                     var range = Range.from_variant (expect_property (parameters, "range", VariantType.VARIANT, "CodeActionParams"));
@@ -340,6 +358,27 @@ public abstract class Lsp.Server : Jsonrpc.Server {
      */
     protected virtual async Action[]? code_action_async (Client client, TextDocumentIdentifier text_document, Range range, CodeActionContext context) throws Error{
         throw new ProtocolError.METHOD_NOT_IMPLEMENTED ("textDocument/codeAction is not implemented");
+    }
+
+    /**
+     * The completion request is sent from the client to the server to
+     * compute completion items at a given cursor position.
+     *
+     * Completion items are presented in the IntelliSense user interface.
+     * If computing full completion items is expensive, servers can additionally
+     * provide a handler for the completion item resolve request
+     * ('completionItem/resolve').
+     *
+     * @param text_document the document to provide completions for
+     * @param position      the position inside the document for which
+     *                      completions are requested
+     * @param context       additional context about how the completion was
+     *                      triggered
+     *
+     * @return a list of completion items, or null if there are none
+     */
+    protected virtual async CompletionItem[]? completion_async (Client client, TextDocumentIdentifier text_document, Position position, CompletionContext? context) throws Error {
+        throw new ProtocolError.METHOD_NOT_IMPLEMENTED ("textDocument/completion is not implemented");
     }
 
     /**
