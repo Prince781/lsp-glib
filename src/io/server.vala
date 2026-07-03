@@ -340,6 +340,31 @@ public abstract class Lsp.Server : Jsonrpc.Server {
                     }
                     break;
 
+                case "textDocument/inlayHint":
+                    var ih_params = new InlayHintParams.from_variant (parameters);
+                    InlayHint[]? ih_result = yield inlay_hint_async (lsp_client,
+                        ih_params.text_document,
+                        ih_params.range);
+                    if (ih_result == null) {
+                        yield client.reply_async (id, new Variant.maybe (VariantType.VARIANT, null), cancellable);
+                    } else {
+                        Variant[] ih_variants = {};
+                        foreach (unowned var hint in ih_result)
+                            ih_variants += hint.to_variant ();
+                        yield client.reply_async (id, ih_variants, cancellable);
+                    }
+                    break;
+
+                case "inlayHint/resolve":
+                    var hint = new InlayHint.from_variant (parameters);
+                    InlayHint? resolved = yield inlay_hint_resolve_async (lsp_client, hint);
+                    if (resolved == null) {
+                        yield client.reply_async (id, new Variant.maybe (VariantType.VARIANT, null), cancellable);
+                    } else {
+                        yield client.reply_async (id, resolved.to_variant (), cancellable);
+                    }
+                    break;
+
                 case "textDocument/prepareCallHierarchy":
                     var tdi_variant = expect_property (parameters, "textDocument", VariantType.VARDICT, "CallHierarchyPrepareParams");
                     var pos_variant = expect_property (parameters, "position", VariantType.VARDICT, "CallHierarchyPrepareParams");
@@ -855,6 +880,31 @@ public abstract class Lsp.Server : Jsonrpc.Server {
      */
     protected virtual async CallHierarchyOutgoingCall[]? outgoing_calls_async (Client client, CallHierarchyItem item) throws Error {
         throw new ProtocolError.METHOD_NOT_IMPLEMENTED ("callHierarchy/outgoingCalls is not implemented");
+    }
+
+    /**
+     * The inlay hint request is sent from the client to the server to
+     * resolve inlay hints for a given text document range.
+     *
+     * @param text_document the document to fetch hints for
+     * @param range         the range to fetch hints for
+     *
+     * @return a list of inlay hints, or null
+     */
+    protected virtual async InlayHint[]? inlay_hint_async (Client client, TextDocumentIdentifier text_document, Range range) throws Error {
+        throw new ProtocolError.METHOD_NOT_IMPLEMENTED ("textDocument/inlayHint is not implemented");
+    }
+
+    /**
+     * The inlay hint resolve request is sent from the client to the
+     * server to resolve additional information for a given inlay hint.
+     *
+     * @param hint the inlay hint to resolve
+     *
+     * @return the resolved inlay hint, or null
+     */
+    protected virtual async InlayHint? inlay_hint_resolve_async (Client client, InlayHint hint) throws Error {
+        throw new ProtocolError.METHOD_NOT_IMPLEMENTED ("inlayHint/resolve is not implemented");
     }
 
     /**

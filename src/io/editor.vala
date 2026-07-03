@@ -759,6 +759,58 @@ public class Lsp.Editor : Jsonrpc.Server {
     }
 
     /**
+     * The inlay hint request is sent from the client to the server to
+     * resolve inlay hints for a given text document range.
+     *
+     * @param uri   the URI of the document
+     * @param range the range to fetch hints for
+     *
+     * @return a list of inlay hints, or null
+     */
+    public async InlayHint[]? inlay_hint_async (Uri uri, Range range) throws Error {
+        if (client == null)
+            throw new Lsp.ProtocolError.NO_CONNECTION ("not connected to a client");
+        if (init_result == null)
+            throw new Lsp.ProtocolError.CLIENT_NOT_INITIALIZED ("client not initialized");
+
+        var parameters = new InlayHintParams (TextDocumentIdentifier.unversioned (uri), range);
+
+        Variant? return_value;
+        yield client.call_async ("textDocument/inlayHint", parameters.to_variant (), cancellable, out return_value);
+
+        if (return_value == null)
+            return null;
+
+        InlayHint[] items = {};
+        foreach (var item in return_value)
+            items += new InlayHint.from_variant (item);
+        return items.length > 0 ? items : null;
+    }
+
+    /**
+     * The inlay hint resolve request is sent from the client to the
+     * server to resolve additional information for a given inlay hint.
+     *
+     * @param hint the inlay hint to resolve
+     *
+     * @return the resolved inlay hint
+     */
+    public async InlayHint? inlay_hint_resolve_async (InlayHint hint) throws Error {
+        if (client == null)
+            throw new Lsp.ProtocolError.NO_CONNECTION ("not connected to a client");
+        if (init_result == null)
+            throw new Lsp.ProtocolError.CLIENT_NOT_INITIALIZED ("client not initialized");
+
+        Variant? return_value;
+        yield client.call_async ("inlayHint/resolve", hint.to_variant (), cancellable, out return_value);
+
+        if (return_value == null)
+            return null;
+
+        return new InlayHint.from_variant (return_value);
+    }
+
+    /**
      * The code action request is sent from the client to the server to compute
      * commands for a given text document and range. These commands are typically code
      * fixes to either fix problems or to beautify/refactor code. The result of a

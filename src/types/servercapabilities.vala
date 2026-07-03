@@ -439,6 +439,13 @@ namespace Lsp {
         public CallHierarchyOptions? call_hierarchy { get; set; }
 
         /**
+         * Whether the server provides inlay hint support.
+         *
+         * @since 3.17.0
+         */
+        public InlayHintOptions? inlay_hint { get; set; }
+
+        /**
          * The server provides workspace symbol support.
          */
         public bool workspace_symbol { get; set; }
@@ -568,6 +575,9 @@ namespace Lsp {
             if ((prop = lookup_property (variant, "callHierarchyProvider", VariantType.VARDICT, "ServerCaps")) != null)
                 call_hierarchy = new CallHierarchyOptions.from_variant (prop);
 
+            if ((prop = lookup_property (variant, "inlayHintProvider", VariantType.VARDICT, "ServerCaps")) != null)
+                inlay_hint = new InlayHintOptions.from_variant (prop);
+
             if ((prop = lookup_property (variant, "workspaceSymbolProvider", VariantType.BOOLEAN, "ServerCaps")) != null)
                 workspace_symbol = (bool) prop;
         }
@@ -602,6 +612,8 @@ namespace Lsp {
                 dict.insert_value ("renameProvider", rename.to_variant ());
             if (call_hierarchy != null)
                 dict.insert_value ("callHierarchyProvider", call_hierarchy.to_variant ());
+            if (inlay_hint != null)
+                dict.insert_value ("inlayHintProvider", inlay_hint.to_variant ());
             dict.insert_value ("workspaceSymbolProvider", workspace_symbol);
 
             return dict.end ();
