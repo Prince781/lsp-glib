@@ -249,6 +249,8 @@ namespace Lsp {
 
         /**
          * Capabilities specific to {@link WorkspaceEdit}s.
+         *
+         * @since 3.13.0
          */
         public WorkspaceEditClientCaps? workspace_edit { get; set; }
 

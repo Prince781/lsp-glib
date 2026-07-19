@@ -295,6 +295,15 @@ namespace Lsp {
             this.version = version;
         }
 
+        public ServerInfo.from_variant (Variant dict) throws DeserializeError {
+            Variant? prop;
+
+            if ((prop = dict.lookup_value ("name", VariantType.STRING)) != null)
+                name = (string)prop;
+            if ((prop = dict.lookup_value ("version", VariantType.STRING)) != null)
+                version = (string)prop;
+        }
+
         public Variant to_variant () {
             var dict = new VariantDict ();
 
@@ -332,6 +341,11 @@ namespace Lsp {
          */
         public ServerCaps capabilities { get; set; }
 
+        /**
+         * Information about the server.
+         *
+         * @since 3.15.0
+         */
         public ServerInfo? server_info { get; set; }
 
         public InitializeResult (ServerCaps capabilities) {
@@ -341,6 +355,10 @@ namespace Lsp {
         public InitializeResult.from_variant (Variant variant) throws DeserializeError {
             capabilities = new ServerCaps.from_variant (
                 expect_property (variant, "capabilities", VariantType.VARDICT, typeof (InitializeResult).name ()));
+
+            Variant? prop;
+            if ((prop = variant.lookup_value ("serverInfo", VariantType.VARDICT)) != null)
+                server_info = new ServerInfo.from_variant (prop);
         }
 
         public Variant to_variant () {
