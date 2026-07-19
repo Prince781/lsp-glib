@@ -119,6 +119,12 @@ public abstract class Lsp.Server : Jsonrpc.Server {
         }
     }
 
+    /**
+     * Wait for changes
+     */
+    protected virtual async void wait_for_context_update_async (Variant id) throws Error {
+    }
+
     private async void handle_call_async (Jsonrpc.Client client, string method, Variant id, Variant parameters) {
         if (exited)
             return;
@@ -130,6 +136,9 @@ public abstract class Lsp.Server : Jsonrpc.Server {
                 yield reply_error_async (client, id, Jsonrpc.ClientError.INVALID_REQUEST, "server is shutting down");
                 return;
             }
+
+            // debounce requests while we have a stale context
+            yield wait_for_context_update_async (id);
 
             var lsp_client = new Client (this, client);
             switch (method) {
@@ -627,7 +636,7 @@ public abstract class Lsp.Server : Jsonrpc.Server {
      * @return a list of code actions and commands available at the current
      *         range in the document
      */
-    protected virtual async Action[]? code_action_async (Client client, TextDocumentIdentifier text_document, Range range, CodeActionContext context) throws Error{
+    protected virtual async Action[]? code_action_async (Client client, TextDocumentIdentifier text_document, Range range, CodeActionContext context) throws Error {
         throw new ProtocolError.METHOD_NOT_IMPLEMENTED ("textDocument/codeAction is not implemented");
     }
 

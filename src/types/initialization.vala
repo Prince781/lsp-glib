@@ -78,7 +78,29 @@ namespace Lsp {
 
         private extern void free ();
 
-        public int64 process_id { get; private set; }
+        /**
+         * The process Id of the parent process that started the server.
+         * Is `null` if the process has not been started by another process.
+         * If the parent process is not alive, then the server should exit
+         * its process.
+         */
+        public int64? process_id { get; set; }
+
+        /**
+         * Information about the client
+         *
+         * @since 3.15.0
+         */
+        public ClientInfo? client_info { get; set; }
+
+        /**
+         * The locale the client is currently showing the user interface
+         * in. This must not necessarily be the locale of the operating
+         * system.
+         *
+         * @since 3.16.0
+         */
+        public string? locale { get; set; }
 
         /**
          * (Kept for backwards compatibility)
@@ -87,7 +109,7 @@ namespace Lsp {
          *
          * @deprecated in favor of `rootUri`.
          */
-        string root_path;
+        public string? root_path { get; set; }
 
         /**
          * (Kept for backwards compatibility)
@@ -97,14 +119,46 @@ namespace Lsp {
          *
          * @deprecated in favor of `workspaceFolders`
          */
-        Uri root_uri;
+        public Uri? root_uri { get; set; }
 
-        public ClientInfo? client_info { get; set; }
+        /**
+         * The capabilities of the client / editor.
+         */
+        public ClientCaps? capabilities { get; set; }
 
-        public WorkspaceFolder[] workspaces { get; set; }
+        /**
+         * The initial trace setting. If omitted, trace is disabled ('off').
+         */
+        public TraceValue trace { get; set; default = OFF; }
 
-        public InitializeParams (WorkspaceFolder primary_workspace,
-                                 (unowned WorkspaceFolder)[]? secondary_workspaces = null) throws ConvertError {
+        /**
+         * The workspace folders configured in the client when the server starts.
+         * This property is only available if the client supports workspace folders.
+         * It can be `null` if the client supports workspace folders but none are
+         * configured.
+         *
+         * @since 3.6.0
+         */
+        public WorkspaceFolder[]? workspaces { get; set; }
+
+        /**
+         * User provided initialization options.
+         */
+        public Variant? initialization_options { get; set; }
+
+        public InitializeParams (int64? process_id = null) {
+            this.process_id = process_id;
+        }
+
+        /**
+         * Creates initialization parameters with workspace folders.
+         *
+         * @param primary_workspace   the primary workspace folder
+         * @param secondary_workspaces additional workspace folders
+         */
+        public InitializeParams.with_workspace_folders (WorkspaceFolder primary_workspace,
+                                                        (unowned WorkspaceFolder)[]? secondary_workspaces = null) throws ConvertError {
+            this ();
             WorkspaceFolder[] temp_workspaces = {};
 
             root_uri = primary_workspace.uri;
@@ -124,8 +178,6 @@ namespace Lsp {
 
             if ((prop = dict.lookup_value ("processId", VariantType.INT64)) != null)
                 process_id = (int64)prop;
-            else
-                throw new DeserializeError.MISSING_PROPERTY ("property `processId` not found for InitializeParams");
 
             if ((prop = dict.lookup_value ("clientInfo", VariantType.VARDICT)) != null) {
                 Variant? inside_prop = null;
@@ -141,33 +193,73 @@ namespace Lsp {
                     client_info = new ClientInfo (client_name, client_version);
             }
 
-            WorkspaceFolder[] temp_workspaces = {};
-            string? client_root_path = null;
-            string? client_root_uri = null;
+            if ((prop = dict.lookup_value ("locale", VariantType.STRING)) != null)
+                locale = (string)prop;
 
             if ((prop = dict.lookup_value ("rootPath", VariantType.STRING)) != null)
-                client_root_path = (string)prop;
+                root_path = (string)prop;
 
-            if ((prop = dict.lookup_value ("rootUri", VariantType.STRING)) != null)
-                client_root_uri = (string)prop;
-            else
-                throw new DeserializeError.MISSING_PROPERTY ("property `rootUri` not found for InitializeParams");
+            if ((prop = dict.lookup_value ("rootUri", VariantType.STRING)) != null) {
+                try {
+                    root_uri = Uri.parse ((string)prop, UriFlags.NONE);
+                } catch (UriError e) {
+                    throw new DeserializeError.INVALID_TYPE ("invalid rootUri in InitializeParams: %s", e.message);
+                }
+            }
 
-            workspaces = temp_workspaces;
+            if ((prop = dict.lookup_value ("capabilities", VariantType.VARDICT)) != null)
+                capabilities = new ClientCaps.from_variant (prop);
+
+            if ((prop = dict.lookup_value ("trace", VariantType.STRING)) != null)
+                trace = TraceValue.parse_string ((string)prop);
+
+            if ((prop = dict.lookup_value ("workspaceFolders", VariantType.ARRAY)) != null) {
+                WorkspaceFolder[] folders = {};
+                foreach (var folder_v in prop) {
+                    Variant? uri_prop = null;
+                    Variant? name_prop = null;
+                    if ((uri_prop = folder_v.lookup_value ("uri", VariantType.STRING)) != null
+                        && (name_prop = folder_v.lookup_value ("name", VariantType.STRING)) != null) {
+                        try {
+                            var uri = Uri.parse ((string)uri_prop, UriFlags.NONE);
+                            folders += new WorkspaceFolder (uri, (string)name_prop);
+                        } catch (UriError e) {
+                            throw new DeserializeError.INVALID_TYPE ("invalid uri in workspaceFolders: %s", e.message);
+                        }
+                    }
+                }
+                workspaces = folders;
+            }
+
+            if ((prop = dict.lookup_value ("initializationOptions", null)) != null)
+                initialization_options = prop;
         }
 
         public Variant to_variant () {
             var dict = new VariantDict ();
 
-            dict.insert_value ("processId", process_id);
-            dict.insert_value ("rootPath", root_path);
-            dict.insert_value ("rootUri", root_uri.to_string ());
+            if (process_id != null)
+                dict.insert_value ("processId", (int64)process_id);
             if (client_info != null)
                 dict.insert_value ("clientInfo", client_info.to_variant ());
-            Variant[] workspaces_list = {};
-            foreach (unowned var workspace in workspaces)
-                workspaces_list += workspace.to_variant ();
-            dict.insert_value ("workspaceFolders", new Variant.array (VariantType.VARDICT, workspaces_list));
+            if (locale != null)
+                dict.insert_value ("locale", locale);
+            if (root_path != null)
+                dict.insert_value ("rootPath", root_path);
+            if (root_uri != null)
+                dict.insert_value ("rootUri", root_uri.to_string ());
+            if (capabilities != null)
+                dict.insert_value ("capabilities", capabilities.to_variant ());
+            if (trace != OFF)
+                dict.insert_value ("trace", trace.to_string ());
+            if (workspaces != null) {
+                Variant[] workspaces_list = {};
+                foreach (unowned var workspace in workspaces)
+                    workspaces_list += workspace.to_variant ();
+                dict.insert_value ("workspaceFolders", new Variant.array (VariantType.VARDICT, workspaces_list));
+            }
+            if (initialization_options != null)
+                dict.insert_value ("initializationOptions", initialization_options);
 
             return dict.end ();
         }

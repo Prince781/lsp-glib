@@ -100,7 +100,22 @@ namespace Lsp {
      * @see WorkspaceEditClientCaps.resource_ops
      */
     [Compact (opaque = true)]
+    [CCode (ref_function = "lsp_workspace_edit_client_caps_ref", unref_function = "lsp_workspace_edit_client_caps_unref")]
     public class WorkspaceEditClientCaps {
+        private int ref_count = 1;
+
+        public unowned WorkspaceEditClientCaps ref () {
+            AtomicInt.add (ref this.ref_count, 1);
+            return this;
+        }
+
+        public void unref () {
+            if (AtomicInt.dec_and_test (ref this.ref_count))
+                this.free ();
+        }
+
+        private extern void free ();
+
         /**
          * The client supports versioned document changes in {@link WorkspaceEdit}s
          */
@@ -149,6 +164,61 @@ namespace Lsp {
          * tree node.
          */
         public bool change_annotations_group_on_label { get; set; }
+
+        public WorkspaceEditClientCaps.from_variant (Variant dict) throws DeserializeError {
+            Variant? prop;
+
+            if ((prop = dict.lookup_value ("documentChanges", VariantType.BOOLEAN)) != null)
+                document_changes = (bool)prop;
+
+            if ((prop = dict.lookup_value ("resourceOperations", VariantType.ARRAY)) != null) {
+                string[] ops = {};
+                foreach (var op_v in prop)
+                    ops += (string)op_v;
+                resource_ops = ops;
+            }
+
+            if ((prop = dict.lookup_value ("failureHandling", VariantType.STRING)) != null) {
+                FailureHandlingKind fh;
+                if (FailureHandlingKind.ABORT.try_parse ((string)prop, out fh))
+                    failure_handling = fh;
+            }
+
+            if ((prop = dict.lookup_value ("normalizesLineEndings", VariantType.BOOLEAN)) != null)
+                normalizes_line_endings = (bool)prop;
+
+            if ((prop = dict.lookup_value ("changeAnnotationSupport", VariantType.VARDICT)) != null) {
+                change_annotations = true;
+                Variant? ca_prop;
+                if ((ca_prop = prop.lookup_value ("groupsOnLabel", VariantType.BOOLEAN)) != null)
+                    change_annotations_group_on_label = (bool)ca_prop;
+            }
+        }
+
+        public Variant to_variant () {
+            var dict = new VariantDict ();
+
+            if (document_changes)
+                dict.insert_value ("documentChanges", true);
+            if (resource_ops != null) {
+                Variant[] ops = {};
+                foreach (unowned var op in resource_ops)
+                    ops += op;
+                dict.insert_value ("resourceOperations", new Variant.array (VariantType.STRING, ops));
+            }
+            if (failure_handling != FailureHandlingKind.ABORT)
+                dict.insert_value ("failureHandling", failure_handling.to_string ());
+            if (normalizes_line_endings)
+                dict.insert_value ("normalizesLineEndings", true);
+            if (change_annotations) {
+                var ca_dict = new VariantDict ();
+                if (change_annotations_group_on_label)
+                    ca_dict.insert_value ("groupsOnLabel", true);
+                dict.insert_value ("changeAnnotationSupport", ca_dict.end ());
+            }
+
+            return dict.end ();
+        }
     }
 
     /**
@@ -176,6 +246,32 @@ namespace Lsp {
          * supporting the request 'workspace/applyEdit'
          */
         public bool apply_edit { get; set; }
+
+        /**
+         * Capabilities specific to {@link WorkspaceEdit}s.
+         */
+        public WorkspaceEditClientCaps? workspace_edit { get; set; }
+
+        public WorkspaceClientCaps.from_variant (Variant dict) throws DeserializeError {
+            Variant? prop;
+
+            if ((prop = dict.lookup_value ("applyEdit", VariantType.BOOLEAN)) != null)
+                apply_edit = (bool)prop;
+
+            if ((prop = dict.lookup_value ("workspaceEdit", VariantType.VARDICT)) != null)
+                workspace_edit = new WorkspaceEditClientCaps.from_variant (prop);
+        }
+
+        public Variant to_variant () {
+            var dict = new VariantDict ();
+
+            if (apply_edit)
+                dict.insert_value ("applyEdit", true);
+            if (workspace_edit != null)
+                dict.insert_value ("workspaceEdit", workspace_edit.to_variant ());
+
+            return dict.end ();
+        }
     }
 
     /**
@@ -283,6 +379,88 @@ namespace Lsp {
          */
         public bool context { get; set; }
 
+        public CompletionClientCaps.from_variant (Variant dict) throws DeserializeError {
+            Variant? prop;
+
+            if ((prop = dict.lookup_value ("snippet", VariantType.BOOLEAN)) != null)
+                snippets = (bool)prop;
+
+            if ((prop = dict.lookup_value ("commitCharactersSupport", VariantType.BOOLEAN)) != null)
+                commit_chars = (bool)prop;
+
+            if ((prop = dict.lookup_value ("deprecatedSupport", VariantType.BOOLEAN)) != null)
+                deprecated_property = (bool)prop;
+
+            if ((prop = dict.lookup_value ("preselectSupport", VariantType.BOOLEAN)) != null)
+                preselect_property = (bool)prop;
+
+            if ((prop = dict.lookup_value ("insertReplaceSupport", VariantType.BOOLEAN)) != null)
+                insert_replace = (bool)prop;
+
+            if ((prop = dict.lookup_value ("contextSupport", VariantType.BOOLEAN)) != null)
+                context = (bool)prop;
+
+            if ((prop = dict.lookup_value ("resolveSupport", VariantType.VARDICT)) != null) {
+                Variant? rp;
+                if ((rp = prop.lookup_value ("properties", VariantType.ARRAY)) != null) {
+                    string[] props = {};
+                    foreach (var p in rp)
+                        props += (string)p;
+                    resolve_properties = props;
+                }
+            }
+
+            if ((prop = dict.lookup_value ("documentationFormat", VariantType.ARRAY)) != null) {
+                MarkupKind[] formats = {};
+                foreach (var f in prop) {
+                    if (f.is_of_type (VariantType.STRING)) {
+                        switch ((string)f) {
+                            case "plaintext":
+                                formats += MarkupKind.PLAINTEXT;
+                                break;
+                            case "markdown":
+                                formats += MarkupKind.MARKDOWN;
+                                break;
+                        }
+                    } else if (f.is_of_type (VariantType.INT64))
+                        formats += (MarkupKind)(int64)f;
+                }
+                documentation_formats = formats;
+            }
+        }
+
+        public Variant to_variant () {
+            var dict = new VariantDict ();
+
+            if (snippets)
+                dict.insert_value ("snippet", true);
+            if (commit_chars)
+                dict.insert_value ("commitCharactersSupport", true);
+            if (deprecated_property)
+                dict.insert_value ("deprecatedSupport", true);
+            if (preselect_property)
+                dict.insert_value ("preselectSupport", true);
+            if (insert_replace)
+                dict.insert_value ("insertReplaceSupport", true);
+            if (context)
+                dict.insert_value ("contextSupport", true);
+            if (resolve_properties != null) {
+                var rp_dict = new VariantDict ();
+                Variant[] props = {};
+                foreach (unowned var p in resolve_properties)
+                    props += p;
+                rp_dict.insert_value ("properties", new Variant.array (VariantType.STRING, props));
+                dict.insert_value ("resolveSupport", rp_dict.end ());
+            }
+            if (documentation_formats != null) {
+                Variant[] formats = {};
+                foreach (unowned var f in documentation_formats)
+                    formats += (int64)f;
+                dict.insert_value ("documentationFormat", new Variant.array (VariantType.INT64, formats));
+            }
+
+            return dict.end ();
+        }
     }
 
     [Flags]
@@ -330,6 +508,45 @@ namespace Lsp {
         public TextDocumentSyncClientCaps synchronization { get; set; }
 
         public CompletionClientCaps completion { get; set; }
+
+        public TextDocumentClientCaps.from_variant (Variant dict) throws DeserializeError {
+            Variant? prop;
+
+            if ((prop = dict.lookup_value ("synchronization", VariantType.VARDICT)) != null) {
+                var sync_flags = TextDocumentSyncClientCaps.NONE;
+                Variant? sync_prop;
+                if ((sync_prop = prop.lookup_value ("willSave", VariantType.BOOLEAN)) != null && (bool)sync_prop)
+                    sync_flags |= TextDocumentSyncClientCaps.WILL_SAVE;
+                if ((sync_prop = prop.lookup_value ("willSaveWaitUntil", VariantType.BOOLEAN)) != null && (bool)sync_prop)
+                    sync_flags |= TextDocumentSyncClientCaps.WILL_SAVE_WAIT_UNTIL;
+                if ((sync_prop = prop.lookup_value ("didSave", VariantType.BOOLEAN)) != null && (bool)sync_prop)
+                    sync_flags |= TextDocumentSyncClientCaps.DID_SAVE;
+                synchronization = sync_flags;
+            }
+
+            if ((prop = dict.lookup_value ("completion", VariantType.VARDICT)) != null)
+                completion = new CompletionClientCaps.from_variant (prop);
+        }
+
+        public Variant to_variant () {
+            var dict = new VariantDict ();
+
+            if (synchronization != TextDocumentSyncClientCaps.NONE) {
+                var sync_dict = new VariantDict ();
+                if (TextDocumentSyncClientCaps.WILL_SAVE in synchronization)
+                    sync_dict.insert_value ("willSave", true);
+                if (TextDocumentSyncClientCaps.WILL_SAVE_WAIT_UNTIL in synchronization)
+                    sync_dict.insert_value ("willSaveWaitUntil", true);
+                if (TextDocumentSyncClientCaps.DID_SAVE in synchronization)
+                    sync_dict.insert_value ("didSave", true);
+                dict.insert_value ("synchronization", sync_dict.end ());
+            }
+
+            if (completion != null)
+                dict.insert_value ("completion", completion.to_variant ());
+
+            return dict.end ();
+        }
     }
 
     /**
@@ -361,5 +578,29 @@ namespace Lsp {
          * Text document-specific client capabilities.
          */
         public TextDocumentClientCaps text_document { get; set; }
+
+        public ClientCaps () {
+        }
+
+        public ClientCaps.from_variant (Variant dict) throws DeserializeError {
+            Variant? prop;
+
+            if ((prop = dict.lookup_value ("workspace", VariantType.VARDICT)) != null)
+                workspace = new WorkspaceClientCaps.from_variant (prop);
+
+            if ((prop = dict.lookup_value ("textDocument", VariantType.VARDICT)) != null)
+                text_document = new TextDocumentClientCaps.from_variant (prop);
+        }
+
+        public Variant to_variant () {
+            var dict = new VariantDict ();
+
+            if (workspace != null)
+                dict.insert_value ("workspace", workspace.to_variant ());
+            if (text_document != null)
+                dict.insert_value ("textDocument", text_document.to_variant ());
+
+            return dict.end ();
+        }
     }
 }

@@ -197,7 +197,7 @@ public class Lsp.Editor : Jsonrpc.Server {
                                         (unowned WorkspaceFolder)[]? secondary_workspaces = null) throws Error {
         if (client == null)
             throw new Lsp.ProtocolError.NO_CONNECTION ("not connected to a client");
-        var init_params = new InitializeParams (primary_workspace, secondary_workspaces);
+        var init_params = new InitializeParams.with_workspace_folders (primary_workspace, secondary_workspaces);
 
         Variant? return_value;
         yield client.call_async ("initialize", init_params.to_variant (), cancellable, out return_value);
