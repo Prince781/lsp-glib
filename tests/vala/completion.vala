@@ -19,6 +19,13 @@ private void test_markup_content_deserialization () {
         var markdown = new MarkupContent.from_variant (encoded.end ());
         assert (markdown.kind == MarkupKind.MARKDOWN);
         assert (markdown.value == "**bold**");
+
+        var round_tripped = new MarkupContent.from_variant (
+            new MarkupContent (
+                MarkupKind.MARKDOWN,
+                "serialized").to_variant ());
+        assert (round_tripped.kind == MarkupKind.MARKDOWN);
+        assert (round_tripped.value == "serialized");
     } catch (DeserializeError e) {
         error ("markup content deserialization failed: %s", e.message);
     }
@@ -94,14 +101,14 @@ private void test_completion_item_round_trip () {
         assert (markup_kind != null);
         assert ((string) markup_kind == "markdown");
 
-        var decoded = new CompletionItem.from_variant (encoded);
+        var decoded = new CompletionItem.from_variant (
+            encoded);
         assert (decoded.label == "print");
         assert (decoded.kind == CompletionItemKind.FUNCTION);
         assert (decoded.label_details != null);
         assert (decoded.label_details.detail == "(value)");
         assert (decoded.label_details.description == "GLib");
-        assert (
-            (decoded.tags & CompletionItemTag.DEPRECATED) != 0);
+        assert (CompletionItemTag.DEPRECATED in decoded.tags);
         assert (decoded.detail == "void print (string value)");
         assert (decoded.documentation != null);
         assert (decoded.documentation.kind == MarkupKind.MARKDOWN);

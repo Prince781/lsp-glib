@@ -78,11 +78,15 @@ namespace Lsp {
         public CompletionOptions.from_variant (Variant variant) throws DeserializeError {
             Variant? prop = null;
 
-            if ((prop = lookup_property (variant, "triggerCharacters", VariantType.STRING_ARRAY, "CompletionOptions")) != null)
-                triggers = (string[]) prop;
+            if ((prop = lookup_property (variant, "triggerCharacters", VariantType.ARRAY, "CompletionOptions")) != null)
+                triggers = string_array_from_variant (
+                    prop,
+                    "CompletionOptions.triggerCharacters");
 
-            if ((prop = lookup_property (variant, "allCommitCharacters", VariantType.STRING_ARRAY, "CompletionOptions")) != null)
-                commit_triggers = (string[]) prop;
+            if ((prop = lookup_property (variant, "allCommitCharacters", VariantType.ARRAY, "CompletionOptions")) != null)
+                commit_triggers = string_array_from_variant (
+                    prop,
+                    "CompletionOptions.allCommitCharacters");
 
             if ((prop = lookup_property (variant, "resolveProvider", VariantType.BOOLEAN, "CompletionOptions")) != null)
                 supports_resolve = (bool) prop;
@@ -125,11 +129,15 @@ namespace Lsp {
         public SignatureHelpOptions.from_variant (Variant variant) throws DeserializeError {
             Variant? prop = null;
 
-            if ((prop = lookup_property (variant, "triggerCharacters", VariantType.STRING_ARRAY, "SignatureHelpOptions")) != null)
-                triggers = (string[]) prop;
+            if ((prop = lookup_property (variant, "triggerCharacters", VariantType.ARRAY, "SignatureHelpOptions")) != null)
+                triggers = string_array_from_variant (
+                    prop,
+                    "SignatureHelpOptions.triggerCharacters");
 
-            if ((prop = lookup_property (variant, "retriggerCharacters", VariantType.STRING_ARRAY, "SignatureHelpOptions")) != null)
-                retriggers = (string[]) prop;
+            if ((prop = lookup_property (variant, "retriggerCharacters", VariantType.ARRAY, "SignatureHelpOptions")) != null)
+                retriggers = string_array_from_variant (
+                    prop,
+                    "SignatureHelpOptions.retriggerCharacters");
         }
 
         public Variant to_variant () {
@@ -261,20 +269,29 @@ namespace Lsp {
         }
 
         public DocumentOnTypeFormattingOptions.from_variant (Variant variant) throws DeserializeError {
-            Variant? prop = null;
+            first_trigger = (string) expect_property (
+                variant,
+                "firstTriggerCharacter",
+                VariantType.STRING,
+                "DocumentOnTypeFormattingOptions");
 
-            if ((prop = lookup_property (variant, "firstTriggerCharacter", VariantType.STRING, "DocumentOnTypeFormattingOptions")) != null)
-                first_trigger = (string) prop;
-
-            if ((prop = lookup_property (variant, "moreTriggerCharacters", VariantType.STRING_ARRAY, "DocumentOnTypeFormattingOptions")) != null)
-                more_triggers = (string[]) prop;
+            var prop = lookup_property (
+                variant,
+                "moreTriggerCharacters",
+                VariantType.ARRAY,
+                "DocumentOnTypeFormattingOptions");
+            if (prop != null)
+                more_triggers = string_array_from_variant (
+                    prop,
+                    "DocumentOnTypeFormattingOptions.moreTriggerCharacters");
         }
 
         public Variant to_variant () {
             var dict = new VariantDict ();
 
             dict.insert_value ("firstTriggerCharacter", first_trigger);
-            dict.insert_value ("moreTriggerCharacters", more_triggers);
+            if (more_triggers != null)
+                dict.insert_value ("moreTriggerCharacters", more_triggers);
 
             return dict.end ();
         }
@@ -346,7 +363,11 @@ namespace Lsp {
         /**
          * Defines how text documents are synced.
          */
-        public TextDocumentSyncKind text_document_sync { get; set; }
+        public TextDocumentSyncKind text_document_sync {
+            get;
+            set;
+            default = NONE;
+        }
 
         /**
          * The server provides completion support.
@@ -453,11 +474,12 @@ namespace Lsp {
         public ServerCaps.from_variant (Variant variant) throws DeserializeError {
             Variant? prop = null;
 
-            text_document_sync = (TextDocumentSyncKind) (int64) expect_property (
-                variant,
-                "textDocumentSync",
-                VariantType.INT64,
-                "ServerCaps");
+            if ((prop = lookup_property (
+                    variant,
+                    "textDocumentSync",
+                    VariantType.INT64,
+                    "ServerCaps")) != null)
+                text_document_sync = (TextDocumentSyncKind) (int64) prop;
 
             if ((prop = lookup_property (variant, "completionProvider", VariantType.VARDICT, "ServerCaps")) != null)
                 completion = new CompletionOptions.from_variant (prop);
@@ -468,7 +490,7 @@ namespace Lsp {
                 else if (prop.is_of_type (VariantType.VARDICT))
                     hover = true;
                 else
-                    throw new DeserializeError.INVALID_TYPE ("%s.completionProvider must be a boolean or an object", "ServerCaps");
+                    throw new DeserializeError.INVALID_TYPE ("%s.hoverProvider must be a boolean or an object", "ServerCaps");
             }
 
             if ((prop = lookup_property (variant, "signatureHelpProvider", VariantType.VARDICT, "ServerCaps")) != null)

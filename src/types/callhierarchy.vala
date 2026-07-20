@@ -52,7 +52,7 @@ namespace Lsp {
         /**
          * Tags for this item.
          */
-        public SymbolTag tags { get; set; default = 0; }
+        public SymbolTag tags { get; set; default = UNSET; }
 
         /**
          * More detail for this item, e.g. the signature of a function.
@@ -82,7 +82,7 @@ namespace Lsp {
          */
         public Variant? data { get; set; }
 
-        public CallHierarchyItem (string name, SymbolKind kind, Uri uri, Range range, Range selection_range, string? detail = null, SymbolTag tags = 0) {
+        public CallHierarchyItem (string name, SymbolKind kind, Uri uri, Range range, Range selection_range, string? detail = null, SymbolTag tags = SymbolTag.UNSET) {
             this.name = name;
             this.kind = kind;
             this.uri = uri;
@@ -99,9 +99,14 @@ namespace Lsp {
             kind = (SymbolKind) (int64) expect_property (dict, "kind", VariantType.INT64, "CallHierarchyItem");
 
             if ((prop = lookup_property (dict, "tags", VariantType.ARRAY, "CallHierarchyItem")) != null) {
-                SymbolTag parsed_tags = 0;
-                foreach (var tag_v in prop)
-                    parsed_tags |= (SymbolTag) (int) tag_v.get_int64 ();
+                SymbolTag parsed_tags = SymbolTag.UNSET;
+                foreach (var tag_v in prop) {
+                    var tag = expect_array_element (
+                        tag_v,
+                        VariantType.INT64,
+                        "CallHierarchyItem.tags");
+                    parsed_tags |= (SymbolTag) (int) tag.get_int64 ();
+                }
                 tags = parsed_tags;
             }
 
@@ -112,7 +117,7 @@ namespace Lsp {
             range = Range.from_variant (expect_property (dict, "range", VariantType.VARDICT, "CallHierarchyItem"));
             selection_range = Range.from_variant (expect_property (dict, "selectionRange", VariantType.VARDICT, "CallHierarchyItem"));
 
-            if ((prop = lookup_property (dict, "data", VariantType.VARIANT, "CallHierarchyItem")) != null)
+            if ((prop = dict.lookup_value ("data", null)) != null)
                 data = prop;
         }
 
@@ -120,9 +125,9 @@ namespace Lsp {
             var dict = new VariantDict ();
             dict.insert_value ("name", new Variant.string (name));
             dict.insert_value ("kind", new Variant.int64 (kind));
-            if (tags != 0) {
+            if (tags != SymbolTag.UNSET) {
                 Variant[] tag_list = {};
-                if ((tags & SymbolTag.DEPRECATED) != 0)
+                if (SymbolTag.DEPRECATED in tags)
                     tag_list += new Variant.int64 ((int64) SymbolTag.DEPRECATED);
                 dict.insert_value ("tags", new Variant.array (VariantType.INT64, tag_list));
             }
@@ -176,7 +181,10 @@ namespace Lsp {
             from = new CallHierarchyItem.from_variant (expect_property (dict, "from", VariantType.VARDICT, "CallHierarchyIncomingCall"));
             Range[] ranges = {};
             foreach (var rng in expect_property (dict, "fromRanges", VariantType.ARRAY, "CallHierarchyIncomingCall"))
-                ranges += Range.from_variant (rng);
+                ranges += Range.from_variant (expect_array_element (
+                    rng,
+                    VariantType.VARDICT,
+                    "CallHierarchyIncomingCall.fromRanges"));
             from_ranges = ranges;
         }
 
@@ -230,7 +238,10 @@ namespace Lsp {
             to = new CallHierarchyItem.from_variant (expect_property (dict, "to", VariantType.VARDICT, "CallHierarchyOutgoingCall"));
             Range[] ranges = {};
             foreach (var rng in expect_property (dict, "fromRanges", VariantType.ARRAY, "CallHierarchyOutgoingCall"))
-                ranges += Range.from_variant (rng);
+                ranges += Range.from_variant (expect_array_element (
+                    rng,
+                    VariantType.VARDICT,
+                    "CallHierarchyOutgoingCall.fromRanges"));
             from_ranges = ranges;
         }
 

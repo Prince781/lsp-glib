@@ -211,7 +211,11 @@ namespace Lsp {
             text_document = TextDocumentIdentifier.from_variant (expect_property (variant, "textDocument", VariantType.VARDICT, "LspTextDocumentEdit"));
             TextEdit[] edits = {};
             foreach (var vedit in expect_property (variant, "edits", VariantType.ARRAY, "LspTextDocumentEdit"))
-                edits += TextEdit.from_variant (vedit);
+                edits += TextEdit.from_variant (
+                    expect_array_element (
+                        vedit,
+                        VariantType.VARDICT,
+                        "TextDocumentEdit.edits"));
             this.edits = edits;
         }
 

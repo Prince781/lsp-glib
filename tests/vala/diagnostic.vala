@@ -27,7 +27,8 @@ private void test_round_trip () {
             data = new Variant.string ("opaque payload")
         };
 
-        var decoded = new Diagnostic.from_variant (original.to_variant ());
+        var decoded = new Diagnostic.from_variant (
+            original.to_variant ());
         assert (decoded.range.start.line == 1);
         assert (decoded.range.start.character == 2);
         assert (decoded.range.end.line == 3);

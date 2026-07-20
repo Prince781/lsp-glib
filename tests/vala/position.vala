@@ -16,7 +16,8 @@ private Position deserialize_position (Variant variant) {
 
 private void test_round_trip () {
     var original = Position (3, 4);
-    var decoded = deserialize_position (original.to_variant ());
+    var decoded = deserialize_position (
+        original.to_variant ());
 
     assert (decoded.line == original.line);
     assert (decoded.character == original.character);

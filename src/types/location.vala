@@ -55,12 +55,15 @@ namespace Lsp {
             var prop = variant.lookup_value ("line", null);
             if (prop == null)
                 throw new DeserializeError.MISSING_PROPERTY ("property `line` not found for Position");
-            line = parse_uinteger ((!) prop, "line");
+            line = parse_uinteger ((!) prop, "line", "Position");
 
             prop = variant.lookup_value ("character", null);
             if (prop == null)
                 throw new DeserializeError.MISSING_PROPERTY ("property `character` not found for Position");
-            character = parse_uinteger ((!) prop, "character");
+            character = parse_uinteger (
+                (!) prop,
+                "character",
+                "Position");
         }
 
         public Variant to_variant () {
@@ -68,19 +71,6 @@ namespace Lsp {
             variant.insert_value ("line", line);
             variant.insert_value ("character", character);
             return variant.end ();
-        }
-
-        private static uint64 parse_uinteger (
-            Variant value,
-            string property_name
-        ) throws DeserializeError {
-            if (value.is_of_type (VariantType.UINT64))
-                return (uint64) value;
-            if (value.is_of_type (VariantType.INT64) && (int64) value >= 0)
-                return (uint64) (int64) value;
-            throw new DeserializeError.INVALID_TYPE (
-                "property `%s` on Position must be a non-negative integer",
-                property_name);
         }
     }
 

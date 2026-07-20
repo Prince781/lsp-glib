@@ -414,6 +414,30 @@ namespace Lsp {
             this.text_document = text_document;
             this.position = position;
         }
+
+        public TextDocumentPositionParams.from_variant (Variant dict) throws DeserializeError, UriError {
+            text_document = TextDocumentIdentifier.from_variant (
+                expect_property (
+                    dict,
+                    "textDocument",
+                    VariantType.VARDICT,
+                    "TextDocumentPositionParams"));
+            position = Position.from_variant (
+                expect_property (
+                    dict,
+                    "position",
+                    VariantType.VARDICT,
+                    "TextDocumentPositionParams"));
+        }
+
+        public Variant to_variant () {
+            var dict = new VariantDict ();
+            dict.insert_value (
+                "textDocument",
+                text_document.to_variant ());
+            dict.insert_value ("position", position.to_variant ());
+            return dict.end ();
+        }
     }
 
     /**

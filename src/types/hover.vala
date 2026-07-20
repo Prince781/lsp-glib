@@ -71,14 +71,7 @@ namespace Lsp {
         public Variant to_variant () {
             var dict = new VariantDict ();
 
-            if (contents.kind == MarkupKind.PLAINTEXT)
-                dict.insert_value ("contents", contents.value);
-            else {
-                var doc = new VariantDict ();
-                doc.insert_value ("kind", contents.kind.to_string ());
-                doc.insert_value ("value", contents.value);
-                dict.insert_value ("contents", doc.end ());
-            }
+            dict.insert_value ("contents", contents.to_variant ());
 
             if (range != null)
                 dict.insert_value ("range", range.to_variant ());

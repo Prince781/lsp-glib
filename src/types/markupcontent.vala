@@ -107,20 +107,32 @@ namespace Lsp {
          * {@link MarkupContent.kind} and {@link MarkupContent.value} properties.
          */
         public MarkupContent.from_variant (Variant variant) throws DeserializeError {
-            if (variant.is_of_type (VariantType.STRING)) {
+            var value_variant = unwrap_variant (variant);
+            if (value_variant.is_of_type (VariantType.STRING)) {
                 kind = MarkupKind.PLAINTEXT;
-                value = (string) variant;
-            } else if (variant.is_of_type (VariantType.VARDICT)) {
+                value = (string) value_variant;
+            } else if (value_variant.is_of_type (VariantType.VARDICT)) {
                 kind = MarkupKind.parse_string (
                     (string) expect_property (
-                        variant,
+                        value_variant,
                         "kind",
                         VariantType.STRING,
                         "MarkupContent"));
-                value = (string) expect_property (variant, "value", VariantType.STRING, "MarkupContent");
+                value = (string) expect_property (
+                    value_variant,
+                    "value",
+                    VariantType.STRING,
+                    "MarkupContent");
             } else {
                 throw new DeserializeError.INVALID_TYPE ("MarkupContent must be a string or a dict");
             }
+        }
+
+        public Variant to_variant () {
+            var dict = new VariantDict ();
+            dict.insert_value ("kind", kind.to_string ());
+            dict.insert_value ("value", value);
+            return dict.end ();
         }
     }
 }

@@ -50,6 +50,21 @@ namespace Lsp {
         public string label { get; set; }
 
         /**
+         * Whether the label is represented by offsets into the signature.
+         */
+        public bool has_label_offsets { get; private set; }
+
+        /**
+         * The inclusive start offset when {@link has_label_offsets} is true.
+         */
+        public uint64 label_start { get; private set; }
+
+        /**
+         * The exclusive end offset when {@link has_label_offsets} is true.
+         */
+        public uint64 label_end { get; private set; }
+
+        /**
          * The human-readable doc-comment of this parameter.
          *
          * Will be shown in the UI.
@@ -60,14 +75,38 @@ namespace Lsp {
             this.label = label;
         }
 
+        public ParameterInformation.with_offsets (
+            uint64 label_start,
+            uint64 label_end
+        ) {
+            this.label = "";
+            this.label_start = label_start;
+            this.label_end = label_end;
+            this.has_label_offsets = true;
+        }
+
         public ParameterInformation.from_variant (Variant dict) throws DeserializeError {
-            var prop = expect_property (dict, "label", VariantType.ANY, "ParameterInformation");
+            var prop = unwrap_variant (expect_property (
+                dict,
+                "label",
+                VariantType.ANY,
+                "ParameterInformation"));
             if (prop.is_of_type (VariantType.STRING))
                 label = (string) prop;
             else if (prop.is_of_type (VariantType.ARRAY)) {
-                var offset_start = (uint64) prop.get_child_value (0);
-                var offset_end = (uint64) prop.get_child_value (1);
-                label = "%s,%s".printf (offset_start.to_string (), offset_end.to_string ());
+                if (prop.n_children () != 2)
+                    throw new DeserializeError.INVALID_TYPE (
+                        "ParameterInformation.label offsets must contain two elements");
+                label_start = parse_uinteger (
+                    prop.get_child_value (0),
+                    "label[0]",
+                    "ParameterInformation");
+                label_end = parse_uinteger (
+                    prop.get_child_value (1),
+                    "label[1]",
+                    "ParameterInformation");
+                label = "";
+                has_label_offsets = true;
             } else
                 throw new DeserializeError.INVALID_TYPE ("expected string or [uint, uint] for ParameterInformation.label");
 
@@ -78,17 +117,18 @@ namespace Lsp {
 
         public Variant to_variant () {
             var dict = new VariantDict ();
-            dict.insert_value ("label", label);
-            if (documentation != null) {
-                if (documentation.kind == MarkupKind.PLAINTEXT)
-                    dict.insert_value ("documentation", documentation.value);
-                else {
-                    var doc = new VariantDict ();
-                    doc.insert_value ("kind", documentation.kind.to_string ());
-                    doc.insert_value ("value", documentation.value);
-                    dict.insert_value ("documentation", doc.end ());
-                }
-            }
+            if (has_label_offsets) {
+                Variant[] offsets = {
+                    new Variant.uint64 (label_start),
+                    new Variant.uint64 (label_end)
+                };
+                dict.insert_value ("label", offsets);
+            } else
+                dict.insert_value ("label", label);
+            if (documentation != null)
+                dict.insert_value (
+                    "documentation",
+                    documentation.to_variant ());
             return dict.end ();
         }
     }
@@ -151,34 +191,36 @@ namespace Lsp {
             label = (string) expect_property (dict, "label", VariantType.STRING, "SignatureInformation");
 
             if ((prop = lookup_property (dict, "documentation", VariantType.ANY, "SignatureInformation")) != null)
-                documentation = new MarkupContent.from_variant (prop);
+                documentation = new MarkupContent.from_variant (
+                    unwrap_variant (prop));
 
             if ((prop = lookup_property (dict, "parameters", VariantType.ARRAY, "SignatureInformation")) != null) {
                 ParameterInformation[] params = {};
                 foreach (var param_v in prop)
-                    params += new ParameterInformation.from_variant (param_v);
+                    params += new ParameterInformation.from_variant (
+                        expect_array_element (
+                            param_v,
+                            VariantType.VARDICT,
+                            "SignatureInformation.parameters"));
                 if (params.length > 0)
                     parameters = params;
             }
 
-            if ((prop = lookup_property (dict, "activeParameter", VariantType.UINT64, "SignatureInformation")) != null)
-                active_parameter = (uint) (uint64) prop;
+            if ((prop = dict.lookup_value ("activeParameter", null)) != null)
+                active_parameter = (uint) parse_uinteger (
+                    prop,
+                    "activeParameter",
+                    "SignatureInformation");
         }
 
         public Variant to_variant () {
             var dict = new VariantDict ();
             dict.insert_value ("label", label);
 
-            if (documentation != null) {
-                if (documentation.kind == MarkupKind.PLAINTEXT)
-                    dict.insert_value ("documentation", documentation.value);
-                else {
-                    var doc = new VariantDict ();
-                    doc.insert_value ("kind", documentation.kind.to_string ());
-                    doc.insert_value ("value", documentation.value);
-                    dict.insert_value ("documentation", doc.end ());
-                }
-            }
+            if (documentation != null)
+                dict.insert_value (
+                    "documentation",
+                    documentation.to_variant ());
 
             if (parameters != null) {
                 Variant[] param_list = {};
@@ -246,14 +288,24 @@ namespace Lsp {
 
             SignatureInformation[] sigs = {};
             foreach (var sig_v in expect_property (dict, "signatures", VariantType.ARRAY, "SignatureHelp"))
-                sigs += new SignatureInformation.from_variant (sig_v);
+                sigs += new SignatureInformation.from_variant (
+                    expect_array_element (
+                        sig_v,
+                        VariantType.VARDICT,
+                        "SignatureHelp.signatures"));
             signatures = sigs;
 
-            if ((prop = lookup_property (dict, "activeSignature", VariantType.UINT64, "SignatureHelp")) != null)
-                active_signature = (uint) (uint64) prop;
+            if ((prop = dict.lookup_value ("activeSignature", null)) != null)
+                active_signature = (uint) parse_uinteger (
+                    prop,
+                    "activeSignature",
+                    "SignatureHelp");
 
-            if ((prop = lookup_property (dict, "activeParameter", VariantType.UINT64, "SignatureHelp")) != null)
-                active_parameter = (uint) (uint64) prop;
+            if ((prop = dict.lookup_value ("activeParameter", null)) != null)
+                active_parameter = (uint) parse_uinteger (
+                    prop,
+                    "activeParameter",
+                    "SignatureHelp");
         }
 
         public Variant to_variant () {

@@ -28,7 +28,8 @@ private void test_identifier_round_trip () {
         assert (version != null);
         assert ((int64) version == 42);
 
-        var decoded = TextDocumentIdentifier.from_variant (encoded);
+        var decoded = TextDocumentIdentifier.from_variant (
+            encoded);
         assert (decoded.uri.to_string () == "file:///workspace/main.vala");
         assert (decoded.version == 42);
     } catch (Error e) {
@@ -44,7 +45,8 @@ private void test_unversioned_identifier_round_trip () {
 
         assert (encoded.lookup_value ("version", null) == null);
 
-        var decoded = TextDocumentIdentifier.from_variant (encoded);
+        var decoded = TextDocumentIdentifier.from_variant (
+            encoded);
         assert (decoded.uri.to_string () == "untitled:buffer");
         assert (decoded.version == null);
     } catch (Error e) {
@@ -67,7 +69,8 @@ private void test_document_item_round_trip () {
         assert (language_id != null);
         assert ((string) language_id == "vala");
 
-        var decoded = new TextDocumentItem.from_variant (encoded);
+        var decoded = new TextDocumentItem.from_variant (
+            encoded);
         assert (decoded.uri.to_string () == "file:///workspace/main.vala");
         assert (decoded.language_id == LanguageId.VALA);
         assert (decoded.version == 7);
@@ -106,6 +109,26 @@ private void test_content_change_round_trip () {
     }
 }
 
+private void test_position_params_round_trip () {
+    try {
+        var original = new TextDocumentPositionParams (
+            TextDocumentIdentifier.unversioned (
+                parse_uri ("file:///workspace/main.vala")),
+            Position (8, 13));
+        var decoded = new TextDocumentPositionParams.from_variant (
+            original.to_variant ());
+
+        assert (
+            decoded.text_document.uri.to_string () ==
+            "file:///workspace/main.vala");
+        assert (decoded.text_document.version == null);
+        assert (decoded.position.line == 8);
+        assert (decoded.position.character == 13);
+    } catch (Error e) {
+        error ("text document position params round trip failed: %s", e.message);
+    }
+}
+
 private int main (string[] args) {
     Test.init (ref args);
     Test.add_func (
@@ -120,5 +143,8 @@ private int main (string[] args) {
     Test.add_func (
         "/serialization/text-document/content-change",
         test_content_change_round_trip);
+    Test.add_func (
+        "/serialization/text-document/position-params",
+        test_position_params_round_trip);
     return Test.run ();
 }

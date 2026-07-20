@@ -103,7 +103,7 @@ namespace Lsp {
     [Flags]
     public enum CompletionItemTag {
         NONE       = 0,
-        DEPRECATED
+        DEPRECATED = 1
     }
 
     /**
@@ -129,7 +129,6 @@ namespace Lsp {
          * Completion was re-triggered as the current completion list
          * is incomplete.
          *
-         * @since 3.18.0
          */
         TRIGGER_FOR_INCOMPLETE_COMPLETIONS = 3
     }
@@ -297,7 +296,11 @@ namespace Lsp {
             CompletionItem[] items = {};
             var items_v = expect_property (dict, "items", VariantType.ARRAY, "CompletionList");
             foreach (var item_v in items_v)
-                items += new CompletionItem.from_variant (item_v);
+                items += new CompletionItem.from_variant (
+                    expect_array_element (
+                        item_v,
+                        VariantType.VARDICT,
+                        "CompletionList.items"));
             this.items = items;
         }
 
@@ -417,7 +420,11 @@ namespace Lsp {
          * `insertText` property and the `newText` property of a provided
          * `textEdit`. If omitted defaults to `InsertTextFormat.PlainText`.
          */
-        public InsertTextFormat insert_text_format { get; set; }
+        public InsertTextFormat insert_text_format {
+            get;
+            set;
+            default = UNSET;
+        }
 
         /**
          * How whitespace and indentation is handled during completion
@@ -426,7 +433,11 @@ namespace Lsp {
          *
          * @since 3.16.0
          */
-        public InsertTextMode insert_text_mode { get; set; }
+        public InsertTextMode insert_text_mode {
+            get;
+            set;
+            default = UNSET;
+        }
 
         /**
          * An edit which is applied to a document when selecting this completion.
@@ -510,7 +521,11 @@ namespace Lsp {
             if ((prop = lookup_property (dict, "tags", VariantType.ARRAY, "CompletionItem")) != null) {
                 CompletionItemTag parsed_tags = NONE;
                 foreach (var tag_v in prop) {
-                    if (tag_v.get_int64 () == (int64) CompletionItemTag.DEPRECATED)
+                    var tag = expect_array_element (
+                        tag_v,
+                        VariantType.INT64,
+                        "CompletionItem.tags");
+                    if (tag.get_int64 () == (int64) CompletionItemTag.DEPRECATED)
                         parsed_tags |= CompletionItemTag.DEPRECATED;
                 }
                 tags = parsed_tags;
@@ -520,7 +535,8 @@ namespace Lsp {
                 detail = (string) prop;
 
             if ((prop = lookup_property (dict, "documentation", VariantType.ANY, "CompletionItem")) != null)
-                documentation = new MarkupContent.from_variant (prop);
+                documentation = new MarkupContent.from_variant (
+                    unwrap_variant (prop));
 
             if ((prop = lookup_property (dict, "preselect", VariantType.BOOLEAN, "CompletionItem")) != null)
                 preselect = (bool) prop;
@@ -548,13 +564,19 @@ namespace Lsp {
             if ((prop = lookup_property (dict, "additionalTextEdits", VariantType.ARRAY, "CompletionItem")) != null) {
                 TextEdit[] edits = {};
                 foreach (var edit_v in prop)
-                    edits += TextEdit.from_variant (edit_v);
+                    edits += TextEdit.from_variant (
+                        expect_array_element (
+                            edit_v,
+                            VariantType.VARDICT,
+                            "CompletionItem.additionalTextEdits"));
                 if (edits.length > 0)
                     additional_text_edits = edits;
             }
 
-            if ((prop = lookup_property (dict, "commitCharacters", VariantType.STRING_ARRAY, "CompletionItem")) != null)
-                commit_chars = (string[]) prop;
+            if ((prop = lookup_property (dict, "commitCharacters", VariantType.ARRAY, "CompletionItem")) != null)
+                commit_chars = string_array_from_variant (
+                    prop,
+                    "CompletionItem.commitCharacters");
 
             if ((prop = lookup_property (dict, "command", VariantType.VARDICT, "CompletionItem")) != null)
                 command = new Command.from_variant (prop);
@@ -576,7 +598,7 @@ namespace Lsp {
 
             if (tags != NONE) {
                 Variant[] tag_list = {};
-                if ((tags & CompletionItemTag.DEPRECATED) != 0)
+                if (CompletionItemTag.DEPRECATED in tags)
                     tag_list += new Variant.int64 ((int64) CompletionItemTag.DEPRECATED);
                 dict.insert_value ("tags", new Variant.array (VariantType.INT64, tag_list));
             }
@@ -584,16 +606,10 @@ namespace Lsp {
             if (detail != null)
                 dict.insert_value ("detail", detail);
 
-            if (documentation != null) {
-                if (documentation.kind == MarkupKind.PLAINTEXT)
-                    dict.insert_value ("documentation", documentation.value);
-                else {
-                    var doc = new VariantDict ();
-                    doc.insert_value ("kind", documentation.kind.to_string ());
-                    doc.insert_value ("value", documentation.value);
-                    dict.insert_value ("documentation", doc.end ());
-                }
-            }
+            if (documentation != null)
+                dict.insert_value (
+                    "documentation",
+                    documentation.to_variant ());
 
             if (preselect)
                 dict.insert_value ("preselect", preselect);

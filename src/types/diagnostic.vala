@@ -86,7 +86,7 @@ namespace Lsp {
         DEPRECATED  = 2;
 
         public static DiagnosticTag parse_int (int value) throws DeserializeError {
-            if (value == UNSET || value == UNNECESSARY || value == DEPRECATED)
+            if (value == UNNECESSARY || value == DEPRECATED)
                 return value;
             throw new DeserializeError.INVALID_TYPE ("%d is not a %s", value, typeof (DiagnosticTag).name ());
         }
@@ -158,7 +158,7 @@ namespace Lsp {
          * The diagnostic's severity. Can be omitted. If omitted it is up to
          * the client to interpret diagnostics as error, warning, info or hint.
          */
-        public DiagnosticSeverity severity { get; set; }
+        public DiagnosticSeverity severity { get; set; default = UNSET; }
 
         /**
          * The diagnostic's code, which might appear in the user interface.
@@ -218,7 +218,7 @@ namespace Lsp {
 
             if ((prop = lookup_property (variant, "severity", VariantType.INT64, "LspDiagnostic")) != null) {
                 var value = (int64) prop;
-                if (value < (int64) DiagnosticSeverity.UNSET ||
+                if (value < (int64) DiagnosticSeverity.ERROR ||
                     value > (int64) DiagnosticSeverity.HINT)
                     throw new DeserializeError.INVALID_TYPE ("invalid LspDiagnostic.severity");
                 severity = (DiagnosticSeverity) value;
@@ -244,9 +244,12 @@ namespace Lsp {
             if ((prop = lookup_property (variant, "tags", VariantType.ARRAY, "LspDiagnostic")) != null) {
                 DiagnosticTag[] diag_tags = {};
                 foreach (var tag in prop) {
-                    if (!tag.is_of_type (VariantType.INT64))
-                        throw new DeserializeError.INVALID_TYPE ("expected int64 element in LspDiagnostic.tags");
-                    diag_tags += DiagnosticTag.parse_int ((int) (int64) tag);
+                    var tag_value = expect_array_element (
+                        tag,
+                        VariantType.INT64,
+                        "Diagnostic.tags");
+                    diag_tags += DiagnosticTag.parse_int (
+                        (int) (int64) tag_value);
                 }
                 tags = diag_tags;
             }
@@ -254,9 +257,11 @@ namespace Lsp {
             if ((prop = lookup_property (variant, "relatedInformation", VariantType.ARRAY, "LspDiagnostic")) != null) {
                 DiagnosticRelatedInformation[] related_info = {};
                 foreach (var related in prop) {
-                    if (!related.is_of_type (VariantType.VARDICT))
-                        throw new DeserializeError.INVALID_TYPE ("expected DiagnosticRelatedInformation element in Diagnostic.relatedInformation");
-                    related_info += DiagnosticRelatedInformation.from_variant (related);
+                    related_info += DiagnosticRelatedInformation.from_variant (
+                        expect_array_element (
+                            related,
+                            VariantType.VARDICT,
+                            "Diagnostic.relatedInformation"));
                 }
                 related_information = related_info;
             }

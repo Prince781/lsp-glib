@@ -31,7 +31,12 @@ public class Lsp.Editor : Jsonrpc.Server {
     /**
      * Whether we've exited the server.
      */
-    bool exited;
+    public bool exited { get; private set; }
+
+    /**
+     * Whether a successful shutdown request has been sent.
+     */
+    public bool is_shutting_down { get; private set; }
 
     /**
      * The trace configuration, synchronized with the language server.
@@ -47,13 +52,16 @@ public class Lsp.Editor : Jsonrpc.Server {
 
     public HashTable<Uri, TextDocumentItem> text_documents { get; private set; }
 
-    public Editor () {
+    construct {
         this.cancellable = new Cancellable ();
         this.text_documents = new HashTable<Uri, TextDocumentItem> (uri_hash, uri_equal);
         this.handle_call.connect ((client, method, id, parameters) => {
             handle_call_async.begin (client, method, id, parameters);
             return !exited;
         });
+    }
+
+    public Editor () {
     }
 
     protected override void notification (Jsonrpc.Client client, string method, Variant parameters) {
@@ -80,7 +88,8 @@ public class Lsp.Editor : Jsonrpc.Server {
                     int64? version = pd_version != null ? (int64?)pd_version.get_int64 () : null;
                     Diagnostic[] diags = {};
                     foreach (var diag in expect_property (parameters, "diagnostics", VariantType.ARRAY, "PublishDiagnosticsParams"))
-                        diags += new Diagnostic.from_variant (diag);
+                        diags += new Diagnostic.from_variant (
+                            unwrap_variant (diag));
                     publish_diagnostics (Uri.parse ((string)pd_uri, UriFlags.NONE), version, diags);
                     break;
 
@@ -115,6 +124,83 @@ public class Lsp.Editor : Jsonrpc.Server {
                     yield client.reply_async (id, result.to_variant (), cancellable);
                     break;
 
+                case "window/showMessageRequest":
+                    var message_type = expect_property (
+                        parameters,
+                        "type",
+                        VariantType.INT64,
+                        "ShowMessageRequestParams");
+                    var message = (string) expect_property (
+                        parameters,
+                        "message",
+                        VariantType.STRING,
+                        "ShowMessageRequestParams");
+                    MessageActionItem[] actions = {};
+                    var actions_value = lookup_property (
+                        parameters,
+                        "actions",
+                        VariantType.ARRAY,
+                        "ShowMessageRequestParams");
+                    if (actions_value != null) {
+                        foreach (var action in actions_value)
+                            actions += MessageActionItem.from_variant (
+                                unwrap_variant (action));
+                    }
+                    var selected_action = yield show_message_request_async (
+                        MessageType.parse_int ((int) (int64) message_type),
+                        message,
+                        actions);
+                    if (selected_action == null)
+                        yield reply_null_async (
+                            client,
+                            id,
+                            cancellable);
+                    else
+                        yield client.reply_async (
+                            id,
+                            ((MessageActionItem) selected_action).to_variant (),
+                            cancellable);
+                    break;
+
+                case "window/showDocument":
+                    var uri = Uri.parse (
+                        (string) expect_property (
+                            parameters,
+                            "uri",
+                            VariantType.STRING,
+                            "ShowDocumentParams"),
+                        UriFlags.NONE);
+                    var external_value = lookup_property (
+                        parameters,
+                        "external",
+                        VariantType.BOOLEAN,
+                        "ShowDocumentParams");
+                    var focus_value = lookup_property (
+                        parameters,
+                        "takeFocus",
+                        VariantType.BOOLEAN,
+                        "ShowDocumentParams");
+                    var selection_value = lookup_property (
+                        parameters,
+                        "selection",
+                        VariantType.VARDICT,
+                        "ShowDocumentParams");
+                    Range? selection = null;
+                    if (selection_value != null)
+                        selection = Range.from_variant (selection_value);
+                    var success = yield show_document_async (
+                        uri,
+                        external_value != null && (bool) external_value,
+                        focus_value != null && (bool) focus_value,
+                        selection);
+                    var show_result = new VariantDict ();
+                    show_result.insert_value ("success", success);
+                    yield client.reply_async (
+                        id,
+                        show_result.end (),
+                        cancellable);
+                    break;
+
                 default:
                     yield client.reply_error_async (id, ErrorCode.METHOD_NOT_FOUND, null, cancellable);
                     break;
@@ -142,15 +228,48 @@ public class Lsp.Editor : Jsonrpc.Server {
         throw new ProtocolError.METHOD_NOT_IMPLEMENTED ("workspace/applyEdit is not implemented");
     }
 
+    /**
+     * Asks the user to select an action for a server-provided message.
+     *
+     * @return the selected action, or `null` if no action was selected
+     */
+    protected virtual async MessageActionItem? show_message_request_async (
+        MessageType type,
+        string message,
+        (unowned MessageActionItem)[] actions
+    ) throws Error {
+        throw new ProtocolError.METHOD_NOT_IMPLEMENTED (
+            "window/showMessageRequest is not implemented");
+    }
+
+    /**
+     * Shows a server-provided resource in the editor.
+     *
+     * @return whether the resource was shown
+     */
+    protected virtual async bool show_document_async (
+        Uri uri,
+        bool external,
+        bool take_focus,
+        Range? selection
+    ) throws Error {
+        throw new ProtocolError.METHOD_NOT_IMPLEMENTED (
+            "window/showDocument is not implemented");
+    }
+
     protected override void client_accepted (Jsonrpc.Client client) {
-        if (this.client != client)
+        if (this.client != client) {
             init_result = null;         // reset init_result with a new client
+            is_shutting_down = false;
+            exited = false;
+        }
         this.client = client;
     }
 
     protected override void client_closed (Jsonrpc.Client client) {
         this.init_result = null;
         this.client = null;
+        this.is_shutting_down = false;
     }
 
     /**
@@ -195,9 +314,23 @@ public class Lsp.Editor : Jsonrpc.Server {
      */
     public async void initialize_async (WorkspaceFolder primary_workspace,
                                         (unowned WorkspaceFolder)[]? secondary_workspaces = null) throws Error {
+        var init_params = new InitializeParams.with_workspace_folders (
+            primary_workspace,
+            secondary_workspaces);
+        yield initialize_with_params_async (init_params);
+    }
+
+    /**
+     * Initializes the server with caller-provided protocol parameters.
+     *
+     * Use this form when the editor needs to advertise client capabilities,
+     * client information, locale, or initialization options.
+     */
+    public async void initialize_with_params_async (
+        InitializeParams init_params
+    ) throws Error {
         if (client == null)
             throw new Lsp.ProtocolError.NO_CONNECTION ("not connected to a client");
-        var init_params = new InitializeParams.with_workspace_folders (primary_workspace, secondary_workspaces);
 
         Variant? return_value;
         yield client.call_async ("initialize", init_params.to_variant (), cancellable, out return_value);
@@ -206,6 +339,24 @@ public class Lsp.Editor : Jsonrpc.Server {
             throw new DeserializeError.INVALID_TYPE ("expected non-null return value from `initialize`");
 
         init_result = new InitializeResult.from_variant (return_value);
+    }
+
+    /**
+     * Notifies the server that initialization has completed.
+     *
+     * This must be sent after {@link initialize_async} and before any other
+     * request or notification.
+     */
+    public async void initialized_async () throws Error {
+        if (client == null)
+            throw new Lsp.ProtocolError.NO_CONNECTION ("not connected to a client");
+        if (init_result == null)
+            throw new Lsp.ProtocolError.CLIENT_NOT_INITIALIZED ("client not initialized");
+
+        yield client.send_notification_async (
+            "initialized",
+            new VariantDict ().end (),
+            cancellable);
     }
 
     /**
@@ -295,6 +446,36 @@ public class Lsp.Editor : Jsonrpc.Server {
     }
 
     /**
+     * Notifies the server that an open document was saved.
+     *
+     * @param text optional saved content when requested by the server
+     */
+    public async void save_text_document_async (
+        Uri uri,
+        string? text = null
+    ) throws Error {
+        if (client == null)
+            throw new Lsp.ProtocolError.NO_CONNECTION ("not connected to a client");
+        if (init_result == null)
+            throw new Lsp.ProtocolError.CLIENT_NOT_INITIALIZED ("client not initialized");
+
+        if (!text_documents.contains (uri))
+            return;
+
+        var parameters = new VariantDict ();
+        parameters.insert_value (
+            "textDocument",
+            TextDocumentIdentifier.unversioned (uri).to_variant ());
+        if (text != null)
+            parameters.insert_value ("text", text);
+
+        yield client.send_notification_async (
+            "textDocument/didSave",
+            parameters.end (),
+            cancellable);
+    }
+
+    /**
      * Closes a file, sending the `textDocument/didClose` message to the
      * language server. If the file is not open, this does nothing.
      */
@@ -334,6 +515,38 @@ public class Lsp.Editor : Jsonrpc.Server {
     }
 
     /**
+     * Requests an orderly server shutdown without terminating it.
+     */
+    public async void shutdown_async () throws Error {
+        if (client == null)
+            throw new Lsp.ProtocolError.NO_CONNECTION ("not connected to a client");
+        if (init_result == null)
+            throw new Lsp.ProtocolError.CLIENT_NOT_INITIALIZED ("client not initialized");
+
+        Variant? return_value;
+        yield client.call_async (
+            "shutdown",
+            null,
+            cancellable,
+            out return_value);
+        is_shutting_down = true;
+    }
+
+    /**
+     * Notifies the server to exit after shutdown.
+     */
+    public async void exit_async () throws Error {
+        if (client == null)
+            throw new Lsp.ProtocolError.NO_CONNECTION ("not connected to a client");
+
+        yield client.send_notification_async (
+            "exit",
+            null,
+            cancellable);
+        exited = true;
+    }
+
+    /**
      * The completion request is sent from the client to the server to
      * compute completion items at a given cursor position.
      *
@@ -366,9 +579,11 @@ public class Lsp.Editor : Jsonrpc.Server {
 
         CompletionItem[] items = {};
         foreach (var item in return_value) {
-            if (!item.is_of_type (VariantType.VARDICT))
-                throw new DeserializeError.UNEXPECTED_ELEMENT ("completion item is not a structured element");
-            items += new CompletionItem.from_variant (item);
+            items += new CompletionItem.from_variant (
+                expect_array_element (
+                    item,
+                    VariantType.VARDICT,
+                    "textDocument/completion result"));
         }
         return items.length > 0 ? items : null;
     }
@@ -401,7 +616,11 @@ public class Lsp.Editor : Jsonrpc.Server {
 
         DocumentHighlight[] items = {};
         foreach (var item in return_value)
-            items += new DocumentHighlight.from_variant (item);
+            items += new DocumentHighlight.from_variant (
+                expect_array_element (
+                    item,
+                    VariantType.VARDICT,
+                    "textDocument/documentHighlight result"));
         return items.length > 0 ? items : null;
     }
 
@@ -489,7 +708,11 @@ public class Lsp.Editor : Jsonrpc.Server {
 
         Location[] items = {};
         foreach (var item in return_value)
-            items += Location.from_variant (item);
+            items += Location.from_variant (
+                expect_array_element (
+                    item,
+                    VariantType.VARDICT,
+                    "textDocument/declaration result"));
         return items.length > 0 ? items : null;
     }
 
@@ -521,7 +744,11 @@ public class Lsp.Editor : Jsonrpc.Server {
 
         Location[] items = {};
         foreach (var item in return_value)
-            items += Location.from_variant (item);
+            items += Location.from_variant (
+                expect_array_element (
+                    item,
+                    VariantType.VARDICT,
+                    "textDocument/definition result"));
         return items.length > 0 ? items : null;
     }
 
@@ -554,7 +781,11 @@ public class Lsp.Editor : Jsonrpc.Server {
 
         Location[] items = {};
         foreach (var item in return_value)
-            items += Location.from_variant (item);
+            items += Location.from_variant (
+                expect_array_element (
+                    item,
+                    VariantType.VARDICT,
+                    "textDocument/implementation result"));
         return items.length > 0 ? items : null;
     }
 
@@ -588,7 +819,11 @@ public class Lsp.Editor : Jsonrpc.Server {
 
         Location[] items = {};
         foreach (var item in return_value)
-            items += Location.from_variant (item);
+            items += Location.from_variant (
+                expect_array_element (
+                    item,
+                    VariantType.VARDICT,
+                    "textDocument/references result"));
         return items.length > 0 ? items : null;
     }
 
@@ -617,7 +852,11 @@ public class Lsp.Editor : Jsonrpc.Server {
 
         DocumentSymbol[] items = {};
         foreach (var item in return_value)
-            items += new DocumentSymbol.from_variant (item);
+            items += new DocumentSymbol.from_variant (
+                expect_array_element (
+                    item,
+                    VariantType.VARDICT,
+                    "textDocument/documentSymbol result"));
         return items.length > 0 ? items : null;
     }
 
@@ -702,7 +941,11 @@ public class Lsp.Editor : Jsonrpc.Server {
 
         CallHierarchyItem[] items = {};
         foreach (var item in return_value)
-            items += new CallHierarchyItem.from_variant (item);
+            items += new CallHierarchyItem.from_variant (
+                expect_array_element (
+                    item,
+                    VariantType.VARDICT,
+                    "textDocument/prepareCallHierarchy result"));
         return items.length > 0 ? items : null;
     }
 
@@ -728,7 +971,11 @@ public class Lsp.Editor : Jsonrpc.Server {
 
         CallHierarchyIncomingCall[] items = {};
         foreach (var call in return_value)
-            items += new CallHierarchyIncomingCall.from_variant (call);
+            items += new CallHierarchyIncomingCall.from_variant (
+                expect_array_element (
+                    call,
+                    VariantType.VARDICT,
+                    "callHierarchy/incomingCalls result"));
         return items.length > 0 ? items : null;
     }
 
@@ -754,7 +1001,11 @@ public class Lsp.Editor : Jsonrpc.Server {
 
         CallHierarchyOutgoingCall[] items = {};
         foreach (var call in return_value)
-            items += new CallHierarchyOutgoingCall.from_variant (call);
+            items += new CallHierarchyOutgoingCall.from_variant (
+                expect_array_element (
+                    call,
+                    VariantType.VARDICT,
+                    "callHierarchy/outgoingCalls result"));
         return items.length > 0 ? items : null;
     }
 
@@ -783,7 +1034,11 @@ public class Lsp.Editor : Jsonrpc.Server {
 
         InlayHint[] items = {};
         foreach (var item in return_value)
-            items += new InlayHint.from_variant (item);
+            items += new InlayHint.from_variant (
+                expect_array_element (
+                    item,
+                    VariantType.VARDICT,
+                    "textDocument/inlayHint result"));
         return items.length > 0 ? items : null;
     }
 
@@ -887,14 +1142,11 @@ public class Lsp.Editor : Jsonrpc.Server {
 
         Action[] actions = {};
         foreach (var item in return_value) {
-            if (!item.is_of_type (VariantType.VARDICT))
-                throw new DeserializeError.UNEXPECTED_ELEMENT ("value is not a structured element");
-            if (item.lookup_value ("kind", null) != null)
-                actions += new CodeAction.from_variant (item);
-            else if (item.lookup_value ("command", null) != null)
-                actions += new Command.from_variant (item);
-            else
-                throw new DeserializeError.UNEXPECTED_ELEMENT ("value is neither a code action nor a command");
+            var action = expect_array_element (
+                item,
+                VariantType.VARDICT,
+                "textDocument/codeAction result");
+            actions += Action.from_variant (action);
         }
         return actions.length > 0 ? actions : null;
     }
@@ -923,7 +1175,11 @@ public class Lsp.Editor : Jsonrpc.Server {
 
         CodeLens[] items = {};
         foreach (var item in return_value)
-            items += new CodeLens.from_variant (item);
+            items += new CodeLens.from_variant (
+                expect_array_element (
+                    item,
+                    VariantType.VARDICT,
+                    "textDocument/codeLens result"));
         return items.length > 0 ? items : null;
     }
 
@@ -952,7 +1208,11 @@ public class Lsp.Editor : Jsonrpc.Server {
 
         TextEdit[] items = {};
         foreach (var item in return_value)
-            items += TextEdit.from_variant (item);
+            items += TextEdit.from_variant (
+                expect_array_element (
+                    item,
+                    VariantType.VARDICT,
+                    "textDocument/formatting result"));
         return items.length > 0 ? items : null;
     }
 
@@ -982,7 +1242,11 @@ public class Lsp.Editor : Jsonrpc.Server {
 
         TextEdit[] items = {};
         foreach (var item in return_value)
-            items += TextEdit.from_variant (item);
+            items += TextEdit.from_variant (
+                expect_array_element (
+                    item,
+                    VariantType.VARDICT,
+                    "textDocument/rangeFormatting result"));
         return items.length > 0 ? items : null;
     }
 
@@ -1012,7 +1276,11 @@ public class Lsp.Editor : Jsonrpc.Server {
 
         SymbolInformation[] items = {};
         foreach (var item in return_value)
-            items += new SymbolInformation.from_variant (item);
+            items += new SymbolInformation.from_variant (
+                expect_array_element (
+                    item,
+                    VariantType.VARDICT,
+                    "workspace/symbol result"));
         return items.length > 0 ? items : null;
     }
 }

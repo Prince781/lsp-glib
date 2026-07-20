@@ -53,6 +53,7 @@ namespace Lsp {
     }
 
     public enum FailureHandlingKind {
+        UNSET,
         ABORT,
         TRANSACTIONAL,
         TEXT_ONLY_TRANSACTIONAL,
@@ -60,6 +61,8 @@ namespace Lsp {
 
         public unowned string to_string () {
             switch (this) {
+                case UNSET:
+                    assert_not_reached ();
                 case ABORT:
                     return "abort";
                 case TRANSACTIONAL:
@@ -88,7 +91,7 @@ namespace Lsp {
                     kind = UNDO;
                     return true;
                 default:
-                    kind = ABORT;
+                    kind = UNSET;
                     return false;
             }
         }
@@ -172,15 +175,14 @@ namespace Lsp {
                 document_changes = (bool)prop;
 
             if ((prop = dict.lookup_value ("resourceOperations", VariantType.ARRAY)) != null) {
-                string[] ops = {};
-                foreach (var op_v in prop)
-                    ops += (string)op_v;
-                resource_ops = ops;
+                resource_ops = string_array_from_variant (
+                    prop,
+                    "WorkspaceEditClientCaps.resourceOperations");
             }
 
             if ((prop = dict.lookup_value ("failureHandling", VariantType.STRING)) != null) {
                 FailureHandlingKind fh;
-                if (FailureHandlingKind.ABORT.try_parse ((string)prop, out fh))
+                if (FailureHandlingKind.UNSET.try_parse ((string)prop, out fh))
                     failure_handling = fh;
             }
 
@@ -206,7 +208,7 @@ namespace Lsp {
                     ops += op;
                 dict.insert_value ("resourceOperations", new Variant.array (VariantType.STRING, ops));
             }
-            if (failure_handling != FailureHandlingKind.ABORT)
+            if (failure_handling != FailureHandlingKind.UNSET)
                 dict.insert_value ("failureHandling", failure_handling.to_string ());
             if (normalizes_line_endings)
                 dict.insert_value ("normalizesLineEndings", true);
@@ -335,7 +337,11 @@ namespace Lsp {
          *
          * @since 3.15.0
          */
-        public CompletionItemTag supported_tags { get; set; }
+        public CompletionItemTag supported_tags {
+            get;
+            set;
+            default = NONE;
+        }
 
         /**
          * Client supports insert replace edit to control different behavior if
@@ -381,42 +387,58 @@ namespace Lsp {
          */
         public bool context { get; set; }
 
+        /**
+         * The client supports completion item label details.
+         *
+         * @since 3.17.0
+         */
+        public bool label_details { get; set; }
+
         public CompletionClientCaps.from_variant (Variant dict) throws DeserializeError {
             Variant? prop;
+            Variant item_caps = dict;
 
-            if ((prop = dict.lookup_value ("snippet", VariantType.BOOLEAN)) != null)
+            if ((prop = dict.lookup_value ("completionItem", VariantType.VARDICT)) != null)
+                item_caps = prop;
+
+            if ((prop = item_caps.lookup_value ("snippetSupport", VariantType.BOOLEAN)) != null)
+                snippets = (bool)prop;
+            else if ((prop = item_caps.lookup_value ("snippet", VariantType.BOOLEAN)) != null)
                 snippets = (bool)prop;
 
-            if ((prop = dict.lookup_value ("commitCharactersSupport", VariantType.BOOLEAN)) != null)
+            if ((prop = item_caps.lookup_value ("commitCharactersSupport", VariantType.BOOLEAN)) != null)
                 commit_chars = (bool)prop;
 
-            if ((prop = dict.lookup_value ("deprecatedSupport", VariantType.BOOLEAN)) != null)
+            if ((prop = item_caps.lookup_value ("deprecatedSupport", VariantType.BOOLEAN)) != null)
                 deprecated_property = (bool)prop;
 
-            if ((prop = dict.lookup_value ("preselectSupport", VariantType.BOOLEAN)) != null)
+            if ((prop = item_caps.lookup_value ("preselectSupport", VariantType.BOOLEAN)) != null)
                 preselect_property = (bool)prop;
 
-            if ((prop = dict.lookup_value ("insertReplaceSupport", VariantType.BOOLEAN)) != null)
+            if ((prop = item_caps.lookup_value ("insertReplaceSupport", VariantType.BOOLEAN)) != null)
                 insert_replace = (bool)prop;
 
             if ((prop = dict.lookup_value ("contextSupport", VariantType.BOOLEAN)) != null)
                 context = (bool)prop;
 
-            if ((prop = dict.lookup_value ("resolveSupport", VariantType.VARDICT)) != null) {
+            if ((prop = item_caps.lookup_value ("labelDetailsSupport", VariantType.BOOLEAN)) != null)
+                label_details = (bool) prop;
+
+            if ((prop = item_caps.lookup_value ("resolveSupport", VariantType.VARDICT)) != null) {
                 Variant? rp;
                 if ((rp = prop.lookup_value ("properties", VariantType.ARRAY)) != null) {
-                    string[] props = {};
-                    foreach (var p in rp)
-                        props += (string)p;
-                    resolve_properties = props;
+                    resolve_properties = string_array_from_variant (
+                        rp,
+                        "CompletionClientCaps.resolveSupport.properties");
                 }
             }
 
-            if ((prop = dict.lookup_value ("documentationFormat", VariantType.ARRAY)) != null) {
+            if ((prop = item_caps.lookup_value ("documentationFormat", VariantType.ARRAY)) != null) {
                 MarkupKind[] formats = {};
                 foreach (var f in prop) {
-                    if (f.is_of_type (VariantType.STRING)) {
-                        switch ((string)f) {
+                    var format = unwrap_variant (f);
+                    if (format.is_of_type (VariantType.STRING)) {
+                        switch ((string) format) {
                             case "plaintext":
                                 formats += MarkupKind.PLAINTEXT;
                                 break;
@@ -424,26 +446,84 @@ namespace Lsp {
                                 formats += MarkupKind.MARKDOWN;
                                 break;
                         }
-                    } else if (f.is_of_type (VariantType.INT64))
-                        formats += (MarkupKind)(int64)f;
+                    } else if (format.is_of_type (VariantType.INT64))
+                        formats += (MarkupKind) (int64) format;
                 }
                 documentation_formats = formats;
+            }
+
+            if ((prop = item_caps.lookup_value ("tagSupport", VariantType.VARDICT)) != null) {
+                var values = prop.lookup_value ("valueSet", VariantType.ARRAY);
+                if (values != null) {
+                    CompletionItemTag tags = CompletionItemTag.NONE;
+                    foreach (var value in values) {
+                        var tag = expect_array_element (
+                            value,
+                            VariantType.INT64,
+                            "CompletionClientCaps.tagSupport.valueSet");
+                        if ((int64) tag == CompletionItemTag.DEPRECATED)
+                            tags |= CompletionItemTag.DEPRECATED;
+                    }
+                    supported_tags = tags;
+                }
+            }
+
+            if ((prop = item_caps.lookup_value ("insertTextModeSupport", VariantType.VARDICT)) != null) {
+                var values = prop.lookup_value ("valueSet", VariantType.ARRAY);
+                if (values != null) {
+                    InsertTextMode[] modes = {};
+                    foreach (var value in values)
+                        modes += (InsertTextMode) (int64) expect_array_element (
+                            value,
+                            VariantType.INT64,
+                            "CompletionClientCaps.insertTextModeSupport.valueSet");
+                    insert_text_modes = modes;
+                }
+            }
+
+            if ((prop = dict.lookup_value ("completionItemKind", VariantType.VARDICT)) != null) {
+                var values = prop.lookup_value ("valueSet", VariantType.ARRAY);
+                if (values != null) {
+                    CompletionItemKind[] kinds = {};
+                    foreach (var value in values)
+                        kinds += (CompletionItemKind) (int64) expect_array_element (
+                            value,
+                            VariantType.INT64,
+                            "CompletionClientCaps.completionItemKind.valueSet");
+                    item_kinds = kinds;
+                }
             }
         }
 
         public Variant to_variant () {
             var dict = new VariantDict ();
+            var item = new VariantDict ();
+            bool has_item_caps = false;
 
-            if (snippets)
-                dict.insert_value ("snippet", true);
-            if (commit_chars)
-                dict.insert_value ("commitCharactersSupport", true);
-            if (deprecated_property)
-                dict.insert_value ("deprecatedSupport", true);
-            if (preselect_property)
-                dict.insert_value ("preselectSupport", true);
-            if (insert_replace)
-                dict.insert_value ("insertReplaceSupport", true);
+            if (snippets) {
+                item.insert_value ("snippetSupport", true);
+                has_item_caps = true;
+            }
+            if (commit_chars) {
+                item.insert_value ("commitCharactersSupport", true);
+                has_item_caps = true;
+            }
+            if (deprecated_property) {
+                item.insert_value ("deprecatedSupport", true);
+                has_item_caps = true;
+            }
+            if (preselect_property) {
+                item.insert_value ("preselectSupport", true);
+                has_item_caps = true;
+            }
+            if (insert_replace) {
+                item.insert_value ("insertReplaceSupport", true);
+                has_item_caps = true;
+            }
+            if (label_details) {
+                item.insert_value ("labelDetailsSupport", true);
+                has_item_caps = true;
+            }
             if (context)
                 dict.insert_value ("contextSupport", true);
             if (resolve_properties != null) {
@@ -452,13 +532,51 @@ namespace Lsp {
                 foreach (unowned var p in resolve_properties)
                     props += p;
                 rp_dict.insert_value ("properties", new Variant.array (VariantType.STRING, props));
-                dict.insert_value ("resolveSupport", rp_dict.end ());
+                item.insert_value ("resolveSupport", rp_dict.end ());
+                has_item_caps = true;
             }
             if (documentation_formats != null) {
                 Variant[] formats = {};
                 foreach (unowned var f in documentation_formats)
-                    formats += (int64)f;
-                dict.insert_value ("documentationFormat", new Variant.array (VariantType.INT64, formats));
+                    formats += f.to_string ();
+                item.insert_value (
+                    "documentationFormat",
+                    new Variant.array (VariantType.STRING, formats));
+                has_item_caps = true;
+            }
+            if (supported_tags != CompletionItemTag.NONE) {
+                var tag_support = new VariantDict ();
+                Variant[] tags = {};
+                if (CompletionItemTag.DEPRECATED in supported_tags)
+                    tags += new Variant.int64 (
+                        CompletionItemTag.DEPRECATED);
+                tag_support.insert_value ("valueSet", tags);
+                item.insert_value ("tagSupport", tag_support.end ());
+                has_item_caps = true;
+            }
+            if (insert_text_modes != null) {
+                var mode_support = new VariantDict ();
+                Variant[] modes = {};
+                foreach (var mode in insert_text_modes)
+                    modes += new Variant.int64 (mode);
+                mode_support.insert_value ("valueSet", modes);
+                item.insert_value (
+                    "insertTextModeSupport",
+                    mode_support.end ());
+                has_item_caps = true;
+            }
+            if (has_item_caps)
+                dict.insert_value ("completionItem", item.end ());
+
+            if (item_kinds != null) {
+                var kind_support = new VariantDict ();
+                Variant[] kinds = {};
+                foreach (var kind in item_kinds)
+                    kinds += new Variant.int64 (kind);
+                kind_support.insert_value ("valueSet", kinds);
+                dict.insert_value (
+                    "completionItemKind",
+                    kind_support.end ());
             }
 
             return dict.end ();
@@ -467,7 +585,7 @@ namespace Lsp {
 
     [Flags]
     public enum TextDocumentSyncClientCaps {
-        NONE,
+        NONE = 0,
 
         /**
          * The client supports sending 'will save' notifications.
@@ -507,7 +625,11 @@ namespace Lsp {
 
         private extern void free ();
 
-        public TextDocumentSyncClientCaps synchronization { get; set; }
+        public TextDocumentSyncClientCaps synchronization {
+            get;
+            set;
+            default = NONE;
+        }
 
         public CompletionClientCaps completion { get; set; }
 

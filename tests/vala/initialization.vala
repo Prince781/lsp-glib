@@ -167,6 +167,20 @@ private void test_initialize_result_round_trip () {
     }
 }
 
+private void test_empty_server_capabilities () {
+    try {
+        var decoded = new ServerCaps.from_variant (
+            new VariantDict ().end ());
+        assert (
+            decoded.text_document_sync ==
+            TextDocumentSyncKind.NONE);
+        assert (!decoded.hover);
+        assert (decoded.completion == null);
+    } catch (DeserializeError e) {
+        error ("empty server capabilities were rejected: %s", e.message);
+    }
+}
+
 private int main (string[] args) {
     Test.init (ref args);
     Test.add_func (
@@ -178,5 +192,8 @@ private int main (string[] args) {
     Test.add_func (
         "/serialization/initialization/result",
         test_initialize_result_round_trip);
+    Test.add_func (
+        "/deserialization/initialization/empty-capabilities",
+        test_empty_server_capabilities);
     return Test.run ();
 }

@@ -116,10 +116,14 @@ public class Lsp.Client : Object {
         Variant? return_value;
         yield client.call_async ("window/showDocument", dict.end (), cancellable, out return_value);
 
-        if (return_value == null || !return_value.is_of_type (VariantType.BOOLEAN))
-            throw new DeserializeError.INVALID_TYPE ("expected boolean success result from window/showDocument");
-        
-        return (bool)return_value;
+        if (return_value == null)
+            throw new DeserializeError.INVALID_TYPE ("expected result from window/showDocument");
+
+        return (bool) expect_property (
+            return_value,
+            "success",
+            VariantType.BOOLEAN,
+            "ShowDocumentResult");
     }
 
     /**
@@ -157,6 +161,8 @@ public class Lsp.Client : Object {
     public async void publish_diagnostics_async (Uri uri, (unowned Diagnostic)[]? diagnostics, int64? version = null) throws Error {
         var dict = new VariantDict ();
         dict.insert_value ("uri", uri.to_string ());
+        if (version != null)
+            dict.insert_value ("version", (int64) version);
         Variant[] diagnostics_list = {};
         if (diagnostics != null) {
             foreach (var diagnostic in diagnostics)

@@ -34,6 +34,19 @@ namespace Lsp {
         }
 
         /**
+         * Deserializes either a {@link Command} or a {@link CodeAction}.
+         */
+        public static Action from_variant (
+            Variant variant
+        ) throws DeserializeError, UriError {
+            var command = variant.lookup_value ("command", null);
+            if (command != null &&
+                unwrap_variant (command).is_of_type (VariantType.STRING))
+                return new Command.from_variant (variant);
+            return new CodeAction.from_variant (variant);
+        }
+
+        /**
          * Serialize this action to a {@link GLib.Variant}
          */
         public abstract Variant to_variant ();
@@ -77,12 +90,8 @@ namespace Lsp {
             Variant? prop = lookup_property (variant, "arguments", VariantType.ARRAY, "LspCommand");
             if (prop != null) {
                 Variant[] arguments = {};
-                foreach (var varg in prop) {
-                    if (varg.is_of_type (VariantType.VARIANT))
-                        arguments += varg.get_variant ();
-                    else
-                        arguments += varg;
-                }
+                foreach (var varg in prop)
+                    arguments += unwrap_variant (varg);
                 if (arguments.length > 0)
                     this.arguments = arguments;
             }

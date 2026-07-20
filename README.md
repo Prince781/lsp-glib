@@ -112,3 +112,14 @@ Design ideas:
 ### Docs
 
 Run `meson build && meson compile -C build`. Docs will be located in `build/src/Lsp-3.0`.
+
+### Tests
+
+Run all available tests with `meson test -C build`. Tests can also be run by
+language:
+
+```sh
+meson test -C build --suite vala
+meson test -C build --suite c
+meson test -C build --suite python
+```

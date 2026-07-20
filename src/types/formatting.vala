@@ -26,7 +26,7 @@ namespace Lsp {
      */
     [Flags]
     public enum FormattingOptionFlags {
-        NONE,
+        NONE = 0,
         TRIM_TRAILING_WHITESPACE,
         INSERT_FINAL_NEWLINE,
         TRIM_FINAL_NEWLINES;
@@ -74,11 +74,11 @@ namespace Lsp {
             var dict = new VariantDict ();
             dict.insert_value ("tabSize", new Variant.int64 (tab_size));
             dict.insert_value ("insertSpaces", new Variant.boolean (insert_spaces));
-            if ((flags & FormattingOptionFlags.TRIM_TRAILING_WHITESPACE) != 0)
+            if (FormattingOptionFlags.TRIM_TRAILING_WHITESPACE in flags)
                 dict.insert_value ("trimTrailingWhitespace", new Variant.boolean (true));
-            if ((flags & FormattingOptionFlags.INSERT_FINAL_NEWLINE) != 0)
+            if (FormattingOptionFlags.INSERT_FINAL_NEWLINE in flags)
                 dict.insert_value ("insertFinalNewline", new Variant.boolean (true));
-            if ((flags & FormattingOptionFlags.TRIM_FINAL_NEWLINES) != 0)
+            if (FormattingOptionFlags.TRIM_FINAL_NEWLINES in flags)
                 dict.insert_value ("trimFinalNewlines", new Variant.boolean (true));
             return dict.end ();
         }

@@ -67,7 +67,7 @@ namespace Lsp {
             var prop = lookup_property (dict, "command", VariantType.VARDICT, "CodeLens");
             if (prop != null)
                 command = new Command.from_variant (prop);
-            prop = lookup_property (dict, "data", VariantType.VARIANT, "CodeLens");
+            prop = dict.lookup_value ("data", null);
             if (prop != null)
                 data = prop;
         }

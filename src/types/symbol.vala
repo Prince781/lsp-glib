@@ -57,6 +57,7 @@ namespace Lsp {
      */
     [Flags]
     public enum SymbolTag {
+        UNSET = 0,
         DEPRECATED = 1
     }
 
@@ -100,7 +101,7 @@ namespace Lsp {
         /**
          * Tags for this symbol.
          */
-        public SymbolTag tags { get; set; default = 0; }
+        public SymbolTag tags { get; set; default = UNSET; }
 
         /**
          * The range enclosing this symbol not including leading/trailing
@@ -122,7 +123,7 @@ namespace Lsp {
          */
         public DocumentSymbol[] children { get; set; }
 
-        public DocumentSymbol (string name, SymbolKind kind, Range range, Range selection_range, string? detail = null, SymbolTag tags = 0) {
+        public DocumentSymbol (string name, SymbolKind kind, Range range, Range selection_range, string? detail = null, SymbolTag tags = SymbolTag.UNSET) {
             this.name = name;
             this.kind = kind;
             this.range = range;
@@ -145,17 +146,30 @@ namespace Lsp {
             selection_range = Range.from_variant (expect_property (dict, "selectionRange", VariantType.VARDICT, "DocumentSymbol"));
 
             if ((prop = lookup_property (dict, "tags", VariantType.ARRAY, "DocumentSymbol")) != null) {
-                SymbolTag parsed_tags = 0;
-                foreach (var tag_v in prop)
-                    parsed_tags |= (SymbolTag) (int) tag_v.get_int64 ();
+                SymbolTag parsed_tags = SymbolTag.UNSET;
+                foreach (var tag_v in prop) {
+                    var tag = expect_array_element (
+                        tag_v,
+                        VariantType.INT64,
+                        "DocumentSymbol.tags");
+                    parsed_tags |= (SymbolTag) (int) tag.get_int64 ();
+                }
                 tags = parsed_tags;
             }
 
-            child_list = lookup_property (dict, "children", (VariantType) "av", "DocumentSymbol");
+            child_list = lookup_property (
+                dict,
+                "children",
+                VariantType.ARRAY,
+                "DocumentSymbol");
             if (child_list != null) {
                 DocumentSymbol[] children = {};
                 foreach (var child in child_list)
-                    children += new DocumentSymbol.from_variant (child);
+                    children += new DocumentSymbol.from_variant (
+                        expect_array_element (
+                            child,
+                            VariantType.VARDICT,
+                            "DocumentSymbol.children"));
                 this.children = children;
             } else {
                 this.children = {};
@@ -168,9 +182,9 @@ namespace Lsp {
             dict.insert_value ("kind", new Variant.int64 (kind));
             if (detail != null)
                 dict.insert_value ("detail", new Variant.string (detail));
-            if (tags != 0) {
+            if (tags != SymbolTag.UNSET) {
                 Variant[] tag_list = {};
-                if ((tags & SymbolTag.DEPRECATED) != 0)
+                if (SymbolTag.DEPRECATED in tags)
                     tag_list += new Variant.int64 ((int64) SymbolTag.DEPRECATED);
                 dict.insert_value ("tags", new Variant.array (VariantType.INT64, tag_list));
             }
@@ -201,7 +215,7 @@ namespace Lsp {
          */
         public bool deprecated {
             get {
-                return (tags & SymbolTag.DEPRECATED) != 0;
+                return SymbolTag.DEPRECATED in tags;
             }
             set {
                 if (value)
@@ -224,7 +238,7 @@ namespace Lsp {
         /**
          * Tags for this symbol.
          */
-        public SymbolTag tags { get; set; default = 0; }
+        public SymbolTag tags { get; set; default = UNSET; }
 
         /**
          * The name of the symbol containing this symbol.
@@ -236,7 +250,7 @@ namespace Lsp {
          */
         public Location location { get; set; }
 
-        public SymbolInformation (string name, SymbolKind kind, Location location, string? container_name = null, SymbolTag tags = 0) {
+        public SymbolInformation (string name, SymbolKind kind, Location location, string? container_name = null, SymbolTag tags = SymbolTag.UNSET) {
             this.name = name;
             this.kind = kind;
             this.tags = tags;
@@ -252,9 +266,14 @@ namespace Lsp {
             location = Location.from_variant (expect_property (dict, "location", VariantType.VARDICT, "SymbolInformation"));
 
             if ((prop = lookup_property (dict, "tags", VariantType.ARRAY, "SymbolInformation")) != null) {
-                SymbolTag parsed_tags = 0;
-                foreach (var tag_v in prop)
-                    parsed_tags |= (SymbolTag) (int) tag_v.get_int64 ();
+                SymbolTag parsed_tags = SymbolTag.UNSET;
+                foreach (var tag_v in prop) {
+                    var tag = expect_array_element (
+                        tag_v,
+                        VariantType.INT64,
+                        "SymbolInformation.tags");
+                    parsed_tags |= (SymbolTag) (int) tag.get_int64 ();
+                }
                 tags = parsed_tags;
             }
 
@@ -271,9 +290,9 @@ namespace Lsp {
             if (deprecated)
                 dict.insert_value ("deprecated", new Variant.boolean (true));
             dict.insert_value ("kind", new Variant.int64 (kind));
-            if (tags != 0) {
+            if (tags != SymbolTag.UNSET) {
                 Variant[] tag_list = {};
-                if ((tags & SymbolTag.DEPRECATED) != 0)
+                if (SymbolTag.DEPRECATED in tags)
                     tag_list += new Variant.int64 ((int64) SymbolTag.DEPRECATED);
                 dict.insert_value ("tags", new Variant.array (VariantType.INT64, tag_list));
             }
@@ -322,7 +341,7 @@ namespace Lsp {
         /**
          * Tags for this symbol.
          */
-        public SymbolTag tags { get; set; default = 0; }
+        public SymbolTag tags { get; set; default = UNSET; }
 
         /**
          * The name of the symbol containing this symbol.
@@ -330,31 +349,66 @@ namespace Lsp {
         public string? container_name { get; set; }
 
         /**
-         * The location of this symbol. This can be either a
-         * {@link Location} or a literal with a {@link Uri} and
-         * {@link Range}.
+         * The URI containing this symbol.
          */
-        public Variant location { get; set; }
+        public Uri uri { get; set; }
 
-        public WorkspaceSymbol (string name, SymbolKind kind, Variant location, string? container_name = null, SymbolTag tags = 0) {
+        /**
+         * The symbol range, or null when the server has not resolved it.
+         */
+        public Range? range { get; set; }
+
+        public WorkspaceSymbol (
+            string name,
+            SymbolKind kind,
+            Uri uri,
+            Range? range = null,
+            string? container_name = null,
+            SymbolTag tags = SymbolTag.UNSET
+        ) {
             this.name = name;
             this.kind = kind;
             this.tags = tags;
-            this.location = location;
+            this.uri = uri;
+            this.range = range;
             this.container_name = container_name;
         }
 
-        public WorkspaceSymbol.from_variant (Variant dict) throws DeserializeError {
+        public WorkspaceSymbol.from_variant (
+            Variant dict
+        ) throws DeserializeError, UriError {
             Variant? prop = null;
 
             name = (string) expect_property (dict, "name", VariantType.STRING, "WorkspaceSymbol");
             kind = (SymbolKind) (int64) expect_property (dict, "kind", VariantType.INT64, "WorkspaceSymbol");
-            location = expect_property (dict, "location", VariantType.VARDICT, "WorkspaceSymbol");
+            var location = expect_property (
+                dict,
+                "location",
+                VariantType.VARDICT,
+                "WorkspaceSymbol");
+            uri = Uri.parse (
+                (string) expect_property (
+                    location,
+                    "uri",
+                    VariantType.STRING,
+                    "WorkspaceSymbol.location"),
+                UriFlags.NONE);
+            if ((prop = lookup_property (
+                    location,
+                    "range",
+                    VariantType.VARDICT,
+                    "WorkspaceSymbol.location")) != null)
+                range = Range.from_variant (prop);
 
             if ((prop = lookup_property (dict, "tags", VariantType.ARRAY, "WorkspaceSymbol")) != null) {
-                SymbolTag parsed_tags = 0;
-                foreach (var tag_v in prop)
-                    parsed_tags |= (SymbolTag) (int) tag_v.get_int64 ();
+                SymbolTag parsed_tags = SymbolTag.UNSET;
+                foreach (var tag_v in prop) {
+                    var tag = expect_array_element (
+                        tag_v,
+                        VariantType.INT64,
+                        "WorkspaceSymbol.tags");
+                    parsed_tags |= (SymbolTag) (int) tag.get_int64 ();
+                }
                 tags = parsed_tags;
             }
 
@@ -366,15 +420,19 @@ namespace Lsp {
             var dict = new VariantDict ();
             dict.insert_value ("name", new Variant.string (name));
             dict.insert_value ("kind", new Variant.int64 (kind));
-            if (tags != 0) {
+            if (tags != SymbolTag.UNSET) {
                 Variant[] tag_list = {};
-                if ((tags & SymbolTag.DEPRECATED) != 0)
+                if (SymbolTag.DEPRECATED in tags)
                     tag_list += new Variant.int64 ((int64) SymbolTag.DEPRECATED);
                 dict.insert_value ("tags", new Variant.array (VariantType.INT64, tag_list));
             }
             if (container_name != null)
                 dict.insert_value ("containerName", new Variant.string (container_name));
-            dict.insert_value ("location", location);
+            var location = new VariantDict ();
+            location.insert_value ("uri", uri.to_string ());
+            if (range != null)
+                location.insert_value ("range", range.to_variant ());
+            dict.insert_value ("location", location.end ());
             return dict.end ();
         }
     }

@@ -158,10 +158,9 @@ namespace Lsp {
             if (!variant.is_of_type (VariantType.INT64))
                 throw new DeserializeError.INVALID_TYPE ("expected int64 for CodeActionTriggerKind");
             switch ((int64) variant) {
-            case UNSET:
             case INVOKED:
             case AUTOMATIC:
-                return (CodeActionTriggerKind) variant;
+                return (CodeActionTriggerKind) (int64) variant;
             default:
                 throw new DeserializeError.INVALID_TYPE ("expected CodeActionTriggerKind");
             }
@@ -212,7 +211,7 @@ namespace Lsp {
          *
          * @since 3.17.0
          */
-        public CodeActionTriggerKind trigger { get; set; }
+        public CodeActionTriggerKind trigger { get; set; default = UNSET; }
 
         /**
          * Deserializes a code action context from a {@link GLib.Variant}
@@ -220,7 +219,11 @@ namespace Lsp {
         public CodeActionContext.from_variant (Variant variant) throws Error {
             Diagnostic[] diagnostics = {};
             foreach (var diag in expect_property (variant, "diagnostics", VariantType.ARRAY, "CodeActionContext")) {
-                diagnostics += new Diagnostic.from_variant (diag);
+                diagnostics += new Diagnostic.from_variant (
+                    expect_array_element (
+                        diag,
+                        VariantType.VARDICT,
+                        "CodeActionContext.diagnostics"));
             }
             this.diagnostics = diagnostics;
 
@@ -228,7 +231,11 @@ namespace Lsp {
             if (only_variant != null) {
                 CodeActionKind[] only = {};
                 foreach (var kind in only_variant)
-                    only += CodeActionKind.parse_variant (kind);
+                    only += CodeActionKind.parse_variant (
+                        expect_array_element (
+                            kind,
+                            VariantType.STRING,
+                            "CodeActionContext.only"));
                 this.only = only;
             }
 
@@ -256,7 +263,9 @@ namespace Lsp {
             }
 
             if (trigger != CodeActionTriggerKind.UNSET)
-                variant.insert_value ("triggerKind", trigger);
+                variant.insert_value (
+                    "triggerKind",
+                    new Variant.int64 (trigger));
 
             return variant.end ();
         }
@@ -350,35 +359,73 @@ namespace Lsp {
         public CodeAction.from_variant (Variant variant) throws DeserializeError, UriError {
             base ((string) expect_property (variant, "title", VariantType.STRING, "LspCodeAction"));
 
-            kind = CodeActionKind.parse_variant (expect_property (variant, "kind", VariantType.STRING, "LspCodeAction"));
-            preferred = (bool) expect_property (variant, "preferred", VariantType.BOOLEAN, "LspCodeAction");
-            var disabled = lookup_property (variant, "disabledReason", VariantType.STRING, "LspCodeAction");
+            Variant? prop = lookup_property (
+                variant,
+                "kind",
+                VariantType.STRING,
+                "LspCodeAction");
+            if (prop != null)
+                kind = CodeActionKind.parse_variant (prop);
+
+            prop = lookup_property (
+                variant,
+                "isPreferred",
+                VariantType.BOOLEAN,
+                "LspCodeAction");
+            if (prop == null)
+                prop = lookup_property (
+                    variant,
+                    "preferred",
+                    VariantType.BOOLEAN,
+                    "LspCodeAction");
+            if (prop != null)
+                preferred = (bool) prop;
+
+            var disabled = lookup_property (
+                variant,
+                "disabled",
+                VariantType.VARDICT,
+                "LspCodeAction");
             if (disabled != null)
-                disabled_reason = (string) disabled;
+                disabled_reason = (string) expect_property (
+                    disabled,
+                    "reason",
+                    VariantType.STRING,
+                    "CodeAction.disabled");
 
             Diagnostic[] diagnostics = {};
-            foreach (var vdiag in lookup_property (variant, "diagnostics", VariantType.ARRAY, "LspCodeAction"))
-                diagnostics += new Diagnostic.from_variant (vdiag);
-            if (diagnostics.length > 0)
+            prop = lookup_property (
+                variant,
+                "diagnostics",
+                VariantType.ARRAY,
+                "LspCodeAction");
+            if (prop != null) {
+                foreach (var vdiag in prop)
+                    diagnostics += new Diagnostic.from_variant (
+                        expect_array_element (
+                            vdiag,
+                            VariantType.VARDICT,
+                            "CodeAction.diagnostics"));
                 this.diagnostics = diagnostics;
-            
-            Variant? prop = null;
+            }
+
             if ((prop = lookup_property (variant, "edit", VariantType.VARDICT, "LspCodeAction")) != null)
                 edit = new WorkspaceEdit.from_variant (prop);
             
             if ((prop = lookup_property (variant, "command", VariantType.VARDICT, "LspCodeAction")) != null)
                 command = new Command.from_variant (prop);
             
-            data = lookup_property (variant, "data", VariantType.VARDICT, "LspCodeAction");
+            data = variant.lookup_value ("data", null);
         }
 
         public override Variant to_variant () {
             var variant = new VariantDict ();
 
             variant.insert_value ("title", title);
-            variant.insert_value ("kind", kind.to_string ());
+            if (kind != CodeActionKind.EMPTY)
+                variant.insert_value ("kind", kind.to_string ());
             if (preferred)
-                variant.insert_value ("preferred", preferred);
+                variant.insert_value ("isPreferred", preferred);
             if (disabled_reason != null) {
                 var disabled_dict = new VariantDict ();
                 disabled_dict.insert_value ("reason", disabled_reason);

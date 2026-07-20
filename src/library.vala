@@ -19,6 +19,21 @@
  */
 
 namespace Lsp {
+    /*
+     * jsonrpc-glib accepts a null reply result, but its async GIR parameter
+     * is missing the nullable annotation. Keep the workaround internal.
+     */
+    [CCode (
+        cname = "lsp_jsonrpc_client_reply_null_async",
+        cheader_filename = "io/jsonrpc-reply.h",
+        finish_name = "lsp_jsonrpc_client_reply_null_finish"
+    )]
+    extern async bool reply_null_async (
+        Jsonrpc.Client client,
+        Variant id,
+        Cancellable? cancellable
+    ) throws Error;
+
     public uint uri_hash (Uri uri) {
         return uri.to_string ().hash ();
     }
@@ -54,5 +69,55 @@ namespace Lsp {
         if (!dict.is_of_type (VariantType.VARDICT))
             throw new DeserializeError.INVALID_TYPE ("expected dictionary for %s", parent_type_name);
         return dict.lookup_value (property_name, expected_type);
+    }
+
+    Variant unwrap_variant (Variant variant) {
+        Variant current = variant;
+        while (current.is_of_type (VariantType.VARIANT))
+            current = current.get_variant ();
+        return current;
+    }
+
+    Variant expect_array_element (
+        Variant element,
+        VariantType expected_type,
+        string parent_type_name
+    ) throws DeserializeError {
+        var value = unwrap_variant (element);
+        if (!value.is_of_type (expected_type))
+            throw new DeserializeError.INVALID_TYPE (
+                "unexpected array element type in %s",
+                parent_type_name);
+        return value;
+    }
+
+    string[] string_array_from_variant (
+        Variant array,
+        string parent_type_name
+    ) throws DeserializeError {
+        string[] values = {};
+        foreach (var element in array)
+            values += (string) expect_array_element (
+                element,
+                VariantType.STRING,
+                parent_type_name);
+        return values;
+    }
+
+    uint64 parse_uinteger (
+        Variant value,
+        string property_name,
+        string parent_type_name
+    ) throws DeserializeError {
+        var unwrapped = unwrap_variant (value);
+        if (unwrapped.is_of_type (VariantType.UINT64))
+            return (uint64) unwrapped;
+        if (unwrapped.is_of_type (VariantType.INT64) &&
+            (int64) unwrapped >= 0)
+            return (uint64) (int64) unwrapped;
+        throw new DeserializeError.INVALID_TYPE (
+            "property `%s` on %s must be a non-negative integer",
+            property_name,
+            parent_type_name);
     }
 }

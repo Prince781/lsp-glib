@@ -6,6 +6,7 @@ conf.set('PROJECT_VERSION', meson.project_version())
 conf.set('API_VERSION', API_VERSION)
 
 sources = [version_file] + files([
+  'io/jsonrpc-reply.c',
   'io/client.vala',
   'io/editor.vala',
   'io/server.vala',

@@ -81,7 +81,8 @@ namespace Lsp {
             value = (string) expect_property (dict, "value", VariantType.STRING, "InlayHintLabelPart");
 
             if ((prop = lookup_property (dict, "tooltip", VariantType.ANY, "InlayHintLabelPart")) != null)
-                tooltip = new MarkupContent.from_variant (prop);
+                tooltip = new MarkupContent.from_variant (
+                    unwrap_variant (prop));
 
             if ((prop = lookup_property (dict, "location", VariantType.VARDICT, "InlayHintLabelPart")) != null)
                 location = Location.from_variant (prop);
@@ -93,16 +94,8 @@ namespace Lsp {
         public Variant to_variant () {
             var dict = new VariantDict ();
             dict.insert_value ("value", new Variant.string (value));
-            if (tooltip != null) {
-                if (tooltip.kind == MarkupKind.PLAINTEXT)
-                    dict.insert_value ("tooltip", tooltip.value);
-                else {
-                    var doc = new VariantDict ();
-                    doc.insert_value ("kind", tooltip.kind.to_string ());
-                    doc.insert_value ("value", tooltip.value);
-                    dict.insert_value ("tooltip", doc.end ());
-                }
-            }
+            if (tooltip != null)
+                dict.insert_value ("tooltip", tooltip.to_variant ());
             if (location != null)
                 dict.insert_value ("location", location.to_variant ());
             if (command != null)
@@ -118,7 +111,7 @@ namespace Lsp {
      */
     [Flags]
     public enum InlayHintPadding {
-        NONE,
+        NONE = 0,
         LEFT,
         RIGHT;
     }
@@ -152,10 +145,34 @@ namespace Lsp {
         public Position position { get; set; }
 
         /**
-         * The label of this hint. A human-readable string or an array of
-         * {@link InlayHintLabelPart} label parts.
+         * The simple text label of this hint.
+         *
+         * This is null when {@link label_parts} is used.
          */
-        public Variant label { get; set; }
+        private string? _label;
+        public string? label {
+            get { return _label; }
+            set {
+                _label = value;
+                if (value != null)
+                    _label_parts = null;
+            }
+        }
+
+        /**
+         * The structured label parts of this hint.
+         *
+         * This is null when {@link label} is used.
+         */
+        private InlayHintLabelPart[]? _label_parts;
+        public InlayHintLabelPart[]? label_parts {
+            get { return _label_parts; }
+            set {
+                _label_parts = value;
+                if (value != null)
+                    _label = null;
+            }
+        }
 
         /**
          * The kind of this hint.
@@ -186,9 +203,26 @@ namespace Lsp {
          */
         public Variant? data { get; set; }
 
-        public InlayHint (Position position, Variant label, InlayHintKind kind = TYPE) {
+        public InlayHint (
+            Position position,
+            string label,
+            InlayHintKind kind = TYPE
+        ) {
             this.position = position;
             this.label = label;
+            this.kind = kind;
+        }
+
+        /**
+         * Creates an inlay hint with structured label parts.
+         */
+        public InlayHint.with_label_parts (
+            Position position,
+            (unowned InlayHintLabelPart)[] label_parts,
+            InlayHintKind kind = TYPE
+        ) {
+            this.position = position;
+            this.label_parts = label_parts;
             this.kind = kind;
         }
 
@@ -196,7 +230,22 @@ namespace Lsp {
             Variant? prop = null;
 
             position = Position.from_variant (expect_property (dict, "position", VariantType.VARDICT, "InlayHint"));
-            label = expect_property (dict, "label", VariantType.ANY, "InlayHint");
+            var label_value = unwrap_variant (
+                expect_property (dict, "label", VariantType.ANY, "InlayHint"));
+            if (label_value.is_of_type (VariantType.STRING))
+                label = (string) label_value;
+            else if (label_value.is_of_type (VariantType.ARRAY)) {
+                InlayHintLabelPart[] parts = {};
+                foreach (var part in label_value)
+                    parts += new InlayHintLabelPart.from_variant (
+                        expect_array_element (
+                            part,
+                            VariantType.VARDICT,
+                            "InlayHint.label"));
+                label_parts = parts;
+            } else
+                throw new DeserializeError.INVALID_TYPE (
+                    "InlayHint.label must be a string or an array of label parts");
 
             if ((prop = lookup_property (dict, "kind", VariantType.INT64, "InlayHint")) != null)
                 kind = (InlayHintKind) (int64) prop;
@@ -204,12 +253,17 @@ namespace Lsp {
             if ((prop = lookup_property (dict, "textEdits", VariantType.ARRAY, "InlayHint")) != null) {
                 TextEdit[] edits = {};
                 foreach (var edit in prop)
-                    edits += TextEdit.from_variant (edit);
+                    edits += TextEdit.from_variant (
+                        expect_array_element (
+                            edit,
+                            VariantType.VARDICT,
+                            "InlayHint.textEdits"));
                 text_edits = edits;
             }
 
             if ((prop = lookup_property (dict, "tooltip", VariantType.ANY, "InlayHint")) != null)
-                tooltip = new MarkupContent.from_variant (prop);
+                tooltip = new MarkupContent.from_variant (
+                    unwrap_variant (prop));
 
             if ((prop = lookup_property (dict, "paddingLeft", VariantType.BOOLEAN, "InlayHint")) != null && (bool)prop)
                 padding |= InlayHintPadding.LEFT;
@@ -217,14 +271,24 @@ namespace Lsp {
             if ((prop = lookup_property (dict, "paddingRight", VariantType.BOOLEAN, "InlayHint")) != null && (bool)prop)
                 padding |= InlayHintPadding.RIGHT;
 
-            if ((prop = lookup_property (dict, "data", VariantType.VARIANT, "InlayHint")) != null)
+            if ((prop = dict.lookup_value ("data", null)) != null)
                 data = prop;
         }
 
         public Variant to_variant () {
             var dict = new VariantDict ();
             dict.insert_value ("position", position.to_variant ());
-            dict.insert_value ("label", label);
+            if (label != null)
+                dict.insert_value ("label", label);
+            else {
+                assert (label_parts != null);
+                Variant[] parts = {};
+                foreach (unowned var part in label_parts)
+                    parts += part.to_variant ();
+                dict.insert_value (
+                    "label",
+                    new Variant.array (VariantType.VARDICT, parts));
+            }
             if (kind != TYPE)
                 dict.insert_value ("kind", new Variant.int64 (kind));
             if (text_edits != null) {
@@ -233,19 +297,11 @@ namespace Lsp {
                     edit_list += edit.to_variant ();
                 dict.insert_value ("textEdits", edit_list);
             }
-            if (tooltip != null) {
-                if (tooltip.kind == MarkupKind.PLAINTEXT)
-                    dict.insert_value ("tooltip", tooltip.value);
-                else {
-                    var doc = new VariantDict ();
-                    doc.insert_value ("kind", tooltip.kind.to_string ());
-                    doc.insert_value ("value", tooltip.value);
-                    dict.insert_value ("tooltip", doc.end ());
-                }
-            }
-            if ((padding & InlayHintPadding.LEFT) != 0)
+            if (tooltip != null)
+                dict.insert_value ("tooltip", tooltip.to_variant ());
+            if (InlayHintPadding.LEFT in padding)
                 dict.insert_value ("paddingLeft", new Variant.boolean (true));
-            if ((padding & InlayHintPadding.RIGHT) != 0)
+            if (InlayHintPadding.RIGHT in padding)
                 dict.insert_value ("paddingRight", new Variant.boolean (true));
             if (data != null)
                 dict.insert_value ("data", data);

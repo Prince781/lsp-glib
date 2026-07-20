@@ -49,6 +49,22 @@ namespace Lsp {
             this.version = version;
         }
 
+        public ClientInfo.from_variant (Variant dict) throws DeserializeError {
+            name = (string) expect_property (
+                dict,
+                "name",
+                VariantType.STRING,
+                "ClientInfo");
+
+            var version_value = lookup_property (
+                dict,
+                "version",
+                VariantType.STRING,
+                "ClientInfo");
+            if (version_value != null)
+                version = (string) version_value;
+        }
+
         public Variant to_variant () {
             var dict = new VariantDict ();
             dict.insert_value ("name", name);
@@ -179,19 +195,8 @@ namespace Lsp {
             if ((prop = dict.lookup_value ("processId", VariantType.INT64)) != null)
                 process_id = (int64)prop;
 
-            if ((prop = dict.lookup_value ("clientInfo", VariantType.VARDICT)) != null) {
-                Variant? inside_prop = null;
-                string? client_name = null;
-                string? client_version = null;
-
-                if ((inside_prop = prop.lookup_value ("name", VariantType.STRING)) != null)
-                    client_name = (string)inside_prop;
-                if ((inside_prop = prop.lookup_value ("version", VariantType.STRING)) != null)
-                    client_version = (string)inside_prop;
-
-                if (client_name != null)
-                    client_info = new ClientInfo (client_name, client_version);
-            }
+            if ((prop = dict.lookup_value ("clientInfo", VariantType.VARDICT)) != null)
+                client_info = new ClientInfo.from_variant (prop);
 
             if ((prop = dict.lookup_value ("locale", VariantType.STRING)) != null)
                 locale = (string)prop;
@@ -216,16 +221,13 @@ namespace Lsp {
             if ((prop = dict.lookup_value ("workspaceFolders", VariantType.ARRAY)) != null) {
                 WorkspaceFolder[] folders = {};
                 foreach (var folder_v in prop) {
-                    Variant? uri_prop = null;
-                    Variant? name_prop = null;
-                    if ((uri_prop = folder_v.lookup_value ("uri", VariantType.STRING)) != null
-                        && (name_prop = folder_v.lookup_value ("name", VariantType.STRING)) != null) {
-                        try {
-                            var uri = Uri.parse ((string)uri_prop, UriFlags.NONE);
-                            folders += new WorkspaceFolder (uri, (string)name_prop);
-                        } catch (UriError e) {
-                            throw new DeserializeError.INVALID_TYPE ("invalid uri in workspaceFolders: %s", e.message);
-                        }
+                    try {
+                        folders += new WorkspaceFolder.from_variant (
+                            unwrap_variant (folder_v));
+                    } catch (UriError e) {
+                        throw new DeserializeError.INVALID_TYPE (
+                            "invalid uri in workspaceFolders: %s",
+                            e.message);
                     }
                 }
                 workspaces = folders;

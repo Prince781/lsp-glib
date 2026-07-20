@@ -52,6 +52,21 @@ namespace Lsp {
             this.name = name;
         }
 
+        public WorkspaceFolder.from_variant (Variant dict) throws DeserializeError, UriError {
+            uri = Uri.parse (
+                (string) expect_property (
+                    dict,
+                    "uri",
+                    VariantType.STRING,
+                    "WorkspaceFolder"),
+                UriFlags.NONE);
+            name = (string) expect_property (
+                dict,
+                "name",
+                VariantType.STRING,
+                "WorkspaceFolder");
+        }
+
         public Variant to_variant () {
             var dict = new VariantDict ();
             dict.insert_value ("uri", uri.to_string ());
