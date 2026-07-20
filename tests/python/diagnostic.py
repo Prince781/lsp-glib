@@ -6,21 +6,15 @@ suite avoids relying on Python property synthesis or mutable array proxies.
 
 # PyGObject namespaces are generated at runtime and do not provide .pyi files.
 # pyright: reportMissingImports=false
-# pyright: reportArgumentType=false, reportOptionalMemberAccess=false
 
 import unittest
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import gi
 
 gi.require_version("Lsp", "3.0")
 
-from gi.repository import GLib  # pyright: ignore[reportAttributeAccessIssue]
-
-if TYPE_CHECKING:
-    import lsp_typing as Lsp
-else:
-    from gi.repository import Lsp  # pyright: ignore[reportAttributeAccessIssue]
+from gi.repository import GLib, Lsp  # pyright: ignore[reportAttributeAccessIssue]
 
 
 def make_range(

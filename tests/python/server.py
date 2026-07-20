@@ -7,25 +7,18 @@ the Editor and Server.
 
 # PyGObject namespaces are generated at runtime and do not provide .pyi files.
 # pyright: reportMissingImports=false
-# pyright: reportArgumentType=false, reportIncompatibleMethodOverride=false
 
 import time
 import unittest
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import gi
 
 gi.require_version("Lsp", "3.0")
 gi.require_version("LspTest", "1.0")
 
-from gi.repository import Gio, GLib  # pyright: ignore[reportAttributeAccessIssue]
-
-if TYPE_CHECKING:
-    import lsp_test_typing as LspTest
-    import lsp_typing as Lsp
-else:
-    from gi.repository import Lsp, LspTest  # pyright: ignore[reportAttributeAccessIssue]
+from gi.repository import Gio, GLib, Lsp, LspTest  # pyright: ignore[reportAttributeAccessIssue]
 
 
 class BindingServer(Lsp.Server):
