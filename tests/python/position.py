@@ -9,12 +9,18 @@ wire representation as the native Vala suite.
 # pyright: reportMissingImports=false
 
 import unittest
+from typing import TYPE_CHECKING
 
 import gi
 
 gi.require_version("Lsp", "3.0")
 
-from gi.repository import GLib, Lsp  # pyright: ignore[reportAttributeAccessIssue]
+from gi.repository import GLib  # pyright: ignore[reportAttributeAccessIssue]
+
+if TYPE_CHECKING:
+    import lsp_typing as Lsp
+else:
+    from gi.repository import Lsp  # pyright: ignore[reportAttributeAccessIssue]
 
 
 class PositionTest(unittest.TestCase):

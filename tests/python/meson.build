@@ -102,4 +102,18 @@ if python.found() and g_ir_compiler.found() and g_ir_scanner.found()
     env: python_test_env,
     suite: 'python',
   )
+
+  if run_command(
+    python,
+    '-c',
+    'import jedi',
+    check: false,
+  ).returncode() == 0
+    test(
+      'pylsp GI analysis',
+      python,
+      args: files('pylsp_analysis.py'),
+      suite: 'python',
+    )
+  endif
 endif
