@@ -6,7 +6,7 @@ dependencies = [
   dependency('glib-2.0', version: '>= 2.66'),
   dependency('gobject-2.0'),
   dependency('gio-2.0'),
-  dependency('jsonrpc-glib-1.0', version: '>= 3.28')
+  dependency('jsonrpc-glib-1.0', version: '>= 3.30')
 ]
 
 pkgconfig = import('pkgconfig')
@@ -24,4 +24,5 @@ version_file = vcs_tag(input: 'version.vala.in',
                        command: ['git', 'describe', '--tags', '--dirty'])
 
 subdir('src')
+subdir('tests')
 subdir('doc')

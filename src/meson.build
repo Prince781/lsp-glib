@@ -63,7 +63,7 @@ install_data('lsp-glib.deps',
              install_dir: join_paths(get_option('prefix'), get_option('datadir'), 'vala', 'vapi'))
 
 if g_ir_compiler.found()
-  custom_target('liblsp-glib-typelib',
+  lsp_glib_typelib = custom_target('liblsp-glib-typelib',
     command: [
       g_ir_compiler,
       '--shared-library', 'liblsp-glib-@0@.so'.format (API_VERSION),
@@ -89,4 +89,3 @@ lsp_glib_dep = declare_dependency(
   dependencies: dependencies,
   include_directories: [include_directories('.')]
 )
-

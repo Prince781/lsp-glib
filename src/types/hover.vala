@@ -62,15 +62,7 @@ namespace Lsp {
             Variant? prop = null;
 
             prop = expect_property (dict, "contents", VariantType.ANY, "Hover");
-            if (prop.is_of_type (VariantType.STRING))
-                contents = new MarkupContent (MarkupKind.PLAINTEXT, (string) prop);
-            else if (prop.is_of_type (VariantType.VARDICT))
-                contents = new MarkupContent (
-                    (MarkupKind) (int64) expect_property (prop, "kind", VariantType.INT64, "MarkupContent"),
-                    (string) expect_property (prop, "value", VariantType.STRING, "MarkupContent")
-                );
-            else
-                throw new DeserializeError.INVALID_TYPE ("expected string or MarkupContent for Hover.contents");
+            contents = new MarkupContent.from_variant (prop);
 
             if ((prop = lookup_property (dict, "range", VariantType.VARDICT, "Hover")) != null)
                 range = Range.from_variant (prop);

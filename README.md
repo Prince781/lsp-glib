@@ -18,6 +18,10 @@ Design ideas:
 
 ### Protocol Support
 
+#### Base Protocol
+
+- [x] `$/cancelRequest` (server)
+
 #### Lifecycle Messages
 
 - [x] `initialize`

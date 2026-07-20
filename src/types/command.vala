@@ -77,8 +77,12 @@ namespace Lsp {
             Variant? prop = lookup_property (variant, "arguments", VariantType.ARRAY, "LspCommand");
             if (prop != null) {
                 Variant[] arguments = {};
-                foreach (var varg in prop)
-                    arguments += varg;
+                foreach (var varg in prop) {
+                    if (varg.is_of_type (VariantType.VARIANT))
+                        arguments += varg.get_variant ();
+                    else
+                        arguments += varg;
+                }
                 if (arguments.length > 0)
                     this.arguments = arguments;
             }

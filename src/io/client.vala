@@ -27,12 +27,21 @@
  * operations, and is created internally by {@link Lsp.Server}.
  */
 public class Lsp.Client : Object {
-    Lsp.Server server;
     Jsonrpc.Client client;
 
-    internal Client (Server server, Jsonrpc.Client client) {
-        this.server = server;
+    /**
+     * Cancels work associated with the message currently being handled.
+     *
+     * For requests, this is cancelled when the remote client sends a
+     * `$/cancelRequest` notification. For notifications, this has the same
+     * lifetime as the server. Implementations should observe this cancellable
+     * and must not cancel it themselves.
+     */
+    public Cancellable cancellable { get; private set; }
+
+    internal Client (Jsonrpc.Client client, Cancellable cancellable) {
         this.client = client;
+        this.cancellable = cancellable;
     }
 
     /**
@@ -43,7 +52,7 @@ public class Lsp.Client : Object {
         var dict = new VariantDict ();
         dict.insert_value ("type", type);
         dict.insert_value ("message", message);
-        yield client.send_notification_async ("window/showMessage", dict.end (), server.cancellable);
+        yield client.send_notification_async ("window/showMessage", dict.end (), cancellable);
     }
 
     /**
@@ -68,7 +77,7 @@ public class Lsp.Client : Object {
         dict.insert_value ("actions", new Variant.array (VariantType.VARDICT, actions_list));
 
         Variant? return_value;
-        yield client.call_async ("window/showMessageRequest", dict.end (), server.cancellable, out return_value);
+        yield client.call_async ("window/showMessageRequest", dict.end (), cancellable, out return_value);
 
         if (return_value == null)
             return null;
@@ -105,7 +114,7 @@ public class Lsp.Client : Object {
         }
 
         Variant? return_value;
-        yield client.call_async ("window/showDocument", dict.end (), server.cancellable, out return_value);
+        yield client.call_async ("window/showDocument", dict.end (), cancellable, out return_value);
 
         if (return_value == null || !return_value.is_of_type (VariantType.BOOLEAN))
             throw new DeserializeError.INVALID_TYPE ("expected boolean success result from window/showDocument");
@@ -155,7 +164,7 @@ public class Lsp.Client : Object {
         }
         dict.insert_value ("diagnostics", new Variant.array (VariantType.VARDICT, diagnostics_list));
 
-        yield client.send_notification_async ("textDocument/publishDiagnostics", dict.end (), server.cancellable);
+        yield client.send_notification_async ("textDocument/publishDiagnostics", dict.end (), cancellable);
     }
 
     /**
@@ -178,7 +187,7 @@ public class Lsp.Client : Object {
         if (verbose != null)
             dict.insert_value ("verbose", verbose);
 
-        yield client.send_notification_async ("$/logTrace", dict.end (), server.cancellable);
+        yield client.send_notification_async ("$/logTrace", dict.end (), cancellable);
     }
 
     /**
@@ -192,7 +201,7 @@ public class Lsp.Client : Object {
         var dict = new VariantDict ();
         dict.insert_value ("type", type);
         dict.insert_value ("message", message);
-        yield client.send_notification_async ("window/logMessage", dict.end (), server.cancellable);
+        yield client.send_notification_async ("window/logMessage", dict.end (), cancellable);
     }
 
     /**
@@ -211,7 +220,7 @@ public class Lsp.Client : Object {
             dict.insert_value ("label", label);
 
         Variant? return_value;
-        yield client.call_async ("workspace/applyEdit", dict.end (), server.cancellable, out return_value);
+        yield client.call_async ("workspace/applyEdit", dict.end (), cancellable, out return_value);
 
         if (return_value == null)
             throw new DeserializeError.INVALID_TYPE ("expected result from workspace/applyEdit");

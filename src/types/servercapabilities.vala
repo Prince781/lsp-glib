@@ -453,7 +453,11 @@ namespace Lsp {
         public ServerCaps.from_variant (Variant variant) throws DeserializeError {
             Variant? prop = null;
 
-            text_document_sync = (TextDocumentSyncKind) expect_property (variant, "textDocumentSync", VariantType.INT64, "ServerCaps");
+            text_document_sync = (TextDocumentSyncKind) (int64) expect_property (
+                variant,
+                "textDocumentSync",
+                VariantType.INT64,
+                "ServerCaps");
 
             if ((prop = lookup_property (variant, "completionProvider", VariantType.VARDICT, "ServerCaps")) != null)
                 completion = new CompletionOptions.from_variant (prop);

@@ -519,15 +519,8 @@ namespace Lsp {
             if ((prop = lookup_property (dict, "detail", VariantType.STRING, "CompletionItem")) != null)
                 detail = (string) prop;
 
-            if ((prop = lookup_property (dict, "documentation", VariantType.ANY, "CompletionItem")) != null) {
-                if (prop.is_of_type (VariantType.STRING))
-                    documentation = new MarkupContent (MarkupKind.PLAINTEXT, (string) prop);
-                else if (prop.is_of_type (VariantType.VARDICT))
-                    documentation = new MarkupContent (
-                        (MarkupKind) (int64) expect_property (prop, "kind", VariantType.INT64, "MarkupContent"),
-                        (string) expect_property (prop, "value", VariantType.STRING, "MarkupContent")
-                    );
-            }
+            if ((prop = lookup_property (dict, "documentation", VariantType.ANY, "CompletionItem")) != null)
+                documentation = new MarkupContent.from_variant (prop);
 
             if ((prop = lookup_property (dict, "preselect", VariantType.BOOLEAN, "CompletionItem")) != null)
                 preselect = (bool) prop;
@@ -566,7 +559,7 @@ namespace Lsp {
             if ((prop = lookup_property (dict, "command", VariantType.VARDICT, "CompletionItem")) != null)
                 command = new Command.from_variant (prop);
 
-            if ((prop = lookup_property (dict, "data", VariantType.VARIANT, "CompletionItem")) != null)
+            if ((prop = dict.lookup_value ("data", null)) != null)
                 data = prop;
         }
 

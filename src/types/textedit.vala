@@ -73,7 +73,9 @@ namespace Lsp {
         public TextEdit.from_variant (Variant variant) throws DeserializeError {
             range = Range.from_variant (expect_property (variant, "range", VariantType.VARDICT, "LspTextEdit"));
             new_text = (string) expect_property (variant, "newText", VariantType.STRING, "LspTextEdit");
-            annotation_id = (string?) lookup_property (variant, "annotationId", VariantType.STRING, "LspTextEdit");
+            var prop = lookup_property (variant, "annotationId", VariantType.STRING, "LspTextEdit");
+            if (prop != null)
+                annotation_id = (string) prop;
         }
 
         /**
@@ -216,12 +218,13 @@ namespace Lsp {
         public override Variant to_variant () {
             var variant = new VariantDict ();
 
-            variant.insert_value ("kind", kind);
             variant.insert_value ("textDocument", text_document.to_variant ());
             Variant[] edits_list = {};
             foreach (var edit in edits)
                 edits_list += edit.to_variant ();
-            variant.insert_value ("edits", edits_list);
+            variant.insert_value (
+                "edits",
+                new Variant.array (VariantType.VARDICT, edits_list));
 
             return variant.end ();
         }

@@ -33,6 +33,20 @@ namespace Lsp {
 
             assert_not_reached ();
         }
+
+        public static MarkupKind parse_string (string value) throws DeserializeError {
+            switch (value) {
+                case "plaintext":
+                    return PLAINTEXT;
+                case "markdown":
+                    return MARKDOWN;
+            }
+
+            throw new DeserializeError.INVALID_TYPE (
+                "%s is not a %s",
+                value,
+                typeof (MarkupKind).name ());
+        }
     }
 
     /**
@@ -97,7 +111,12 @@ namespace Lsp {
                 kind = MarkupKind.PLAINTEXT;
                 value = (string) variant;
             } else if (variant.is_of_type (VariantType.VARDICT)) {
-                kind = (MarkupKind) (int64) expect_property (variant, "kind", VariantType.INT64, "MarkupContent");
+                kind = MarkupKind.parse_string (
+                    (string) expect_property (
+                        variant,
+                        "kind",
+                        VariantType.STRING,
+                        "MarkupContent"));
                 value = (string) expect_property (variant, "value", VariantType.STRING, "MarkupContent");
             } else {
                 throw new DeserializeError.INVALID_TYPE ("MarkupContent must be a string or a dict");

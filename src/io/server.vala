@@ -24,6 +24,7 @@
  */
 public abstract class Lsp.Server : Jsonrpc.Server {
     MainLoop loop;
+    HashTable<Jsonrpc.Client, HashTable<Variant, Cancellable>> active_requests;
 
     /**
      * Whether we've received a shutdown request.
@@ -49,11 +50,15 @@ public abstract class Lsp.Server : Jsonrpc.Server {
      */
     protected Server (MainLoop loop) {
         this.loop = loop;
+        this.active_requests = new HashTable<Jsonrpc.Client, HashTable<Variant, Cancellable>> (
+            direct_hash,
+            direct_equal);
         this.notification.connect (notification_async);
         this.handle_call.connect ((client, method, id, parameters) => {
             handle_call_async.begin (client, method, id, parameters);
             return !exited;
         });
+        this.client_closed.connect (cancel_client_requests);
     }
 
     private async void notification_async (Jsonrpc.Client client, string method, Variant parameters) {
@@ -61,15 +66,20 @@ public abstract class Lsp.Server : Jsonrpc.Server {
             return;
 
         debug ("got notification - %s", method);
-        if (is_shutting_down && method != "exit")
+        if (is_shutting_down && method != "exit" && method != "$/cancelRequest")
             return;
 
-        var lsp_client = new Client (this, client);
+        var lsp_client = new Client (client, cancellable);
         try {
             switch (method) {
                 case "exit":
+                    cancel_all_requests ();
                     exit ();
                     exited = true;
+                    break;
+
+                case "$/cancelRequest":
+                    cancel_request (client, parameters);
                     break;
 
                 case "initialized":
@@ -120,27 +130,32 @@ public abstract class Lsp.Server : Jsonrpc.Server {
     }
 
     /**
-     * Wait for changes
+     * Allows an implementation to synchronize its context before dispatching
+     * a request. The default implementation returns immediately.
+     *
+     * @param cancellable cancelled when the remote client cancels the request
      */
-    protected virtual async void wait_for_context_update_async (Variant id) throws Error {
+    protected virtual async void wait_for_context_update_async (Cancellable cancellable) throws Error {
     }
 
     private async void handle_call_async (Jsonrpc.Client client, string method, Variant id, Variant parameters) {
         if (exited)
             return;
 
+        var request_cancellable = register_request (client, id);
         debug ("got call - %s", method);
         try {
             if (is_shutting_down && method != "exit") {
                 debug ("rejected because we're already shutting down");
-                yield reply_error_async (client, id, Jsonrpc.ClientError.INVALID_REQUEST, "server is shutting down");
+                yield reply_error_async (client, id, ErrorCode.INVALID_REQUEST, "server is shutting down");
                 return;
             }
 
-            // debounce requests while we have a stale context
-            yield wait_for_context_update_async (id);
+            // Give implementations a chance to synchronize their context.
+            yield wait_for_context_update_async (request_cancellable);
+            request_cancellable.set_error_if_cancelled ();
 
-            var lsp_client = new Client (this, client);
+            var lsp_client = new Client (client, request_cancellable);
             switch (method) {
                 case "initialize":
                     var init_params = new InitializeParams.from_variant (parameters);
@@ -454,25 +469,98 @@ public abstract class Lsp.Server : Jsonrpc.Server {
                     break;
 
                 default:
-                    yield reply_error_async (client, id, Jsonrpc.ClientError.METHOD_NOT_FOUND);
+                    yield reply_error_async (client, id, ErrorCode.METHOD_NOT_FOUND);
                     break;
             }
+        } catch (IOError.CANCELLED e) {
+            if (request_cancellable.is_cancelled ())
+                yield reply_error_async (client, id, ErrorCode.REQUEST_CANCELLED, e.message);
+            else
+                yield reply_error_async (client, id, ErrorCode.INTERNAL_ERROR, e.message);
         } catch (DeserializeError e) {
             warning ("request failed - deserialize params failed - %s", e.message);
-            yield reply_error_async (client, id, Jsonrpc.ClientError.INVALID_PARAMS, e.message);
+            yield reply_error_async (client, id, ErrorCode.INVALID_PARAMS, e.message);
         } catch (ProtocolError.METHOD_NOT_IMPLEMENTED e) {
-            yield reply_error_async (client, id, Jsonrpc.ClientError.METHOD_NOT_FOUND, e.message);
+            yield reply_error_async (client, id, ErrorCode.METHOD_NOT_FOUND, e.message);
         } catch (Error e) {
-            yield reply_error_async (client, id, Jsonrpc.ClientError.INTERNAL_ERROR, e.message);
+            yield reply_error_async (client, id, ErrorCode.INTERNAL_ERROR, e.message);
+        } finally {
+            unregister_request (client, id);
         }
     }
 
-    private async void reply_error_async (Jsonrpc.Client client, Variant id, Jsonrpc.ClientError client_error, string? message = null) {
+    private async void reply_error_async (Jsonrpc.Client client, Variant id, ErrorCode error_code, string? message = null) {
         try {
-            yield client.reply_error_async (id, client_error, message, cancellable);
+            yield client.reply_error_async (id, error_code, message, cancellable);
         } catch (Error e) {
             warning ("failed to reply with error to client - %s", e.message);
         }
+    }
+
+    private static uint request_id_hash (Variant id) {
+        return id.hash ();
+    }
+
+    private static bool request_id_equal (Variant a, Variant b) {
+        return a.equal (b);
+    }
+
+    private Cancellable register_request (Jsonrpc.Client client, Variant id) {
+        HashTable<Variant, Cancellable>? requests = active_requests[client];
+        if (requests == null) {
+            requests = new HashTable<Variant, Cancellable> (
+                request_id_hash,
+                request_id_equal);
+            active_requests[client] = requests;
+        }
+
+        var request_cancellable = new Cancellable ();
+        requests[id] = request_cancellable;
+        return request_cancellable;
+    }
+
+    private void unregister_request (Jsonrpc.Client client, Variant id) {
+        HashTable<Variant, Cancellable>? requests = active_requests[client];
+        if (requests == null)
+            return;
+
+        requests.remove (id);
+        if (requests.length == 0)
+            active_requests.remove (client);
+    }
+
+    private void cancel_request (Jsonrpc.Client client, Variant parameters) throws DeserializeError {
+        if (!parameters.is_of_type (VariantType.VARDICT))
+            throw new DeserializeError.INVALID_TYPE ("expected dictionary for CancelParams");
+
+        var id = parameters.lookup_value ("id", null);
+        if (id == null)
+            throw new DeserializeError.MISSING_PROPERTY ("missing property `id` for CancelParams");
+        if (!id.is_of_type (VariantType.INT64) && !id.is_of_type (VariantType.STRING))
+            throw new DeserializeError.INVALID_TYPE ("expected integer or string property `id` for CancelParams");
+
+        HashTable<Variant, Cancellable>? requests = active_requests[client];
+        Cancellable? request_cancellable = requests != null ? requests[id] : null;
+        if (request_cancellable != null)
+            request_cancellable.cancel ();
+    }
+
+    private void cancel_client_requests (Jsonrpc.Client client) {
+        HashTable<Variant, Cancellable>? requests = active_requests[client];
+        if (requests == null)
+            return;
+
+        foreach (unowned var request_cancellable in requests.get_values ())
+            request_cancellable.cancel ();
+        active_requests.remove (client);
+    }
+
+    private void cancel_all_requests () {
+        foreach (unowned var requests in active_requests.get_values ()) {
+            foreach (unowned var request_cancellable in requests.get_values ())
+                request_cancellable.cancel ();
+        }
+        active_requests.remove_all ();
     }
 
     /**
@@ -927,7 +1015,7 @@ public abstract class Lsp.Server : Jsonrpc.Server {
      * should also wait with sending the exit notification until they have
      * received a response from the shutdown request.
      *
-     * The server will error with {@link Jsonrpc.ClientError.INVALID_REQUEST} if
+     * The server will error with {@link Lsp.ErrorCode.INVALID_REQUEST} if
      * it receives any requests after a shutdown request.
      */
     protected abstract async void shutdown_async (Client client) throws Error;

@@ -72,15 +72,8 @@ namespace Lsp {
                 throw new DeserializeError.INVALID_TYPE ("expected string or [uint, uint] for ParameterInformation.label");
 
             var doc_prop = lookup_property (dict, "documentation", VariantType.ANY, "ParameterInformation");
-            if (doc_prop != null) {
-                if (doc_prop.is_of_type (VariantType.STRING))
-                    documentation = new MarkupContent (MarkupKind.PLAINTEXT, (string) doc_prop);
-                else if (doc_prop.is_of_type (VariantType.VARDICT))
-                    documentation = new MarkupContent (
-                        (MarkupKind) (int64) expect_property (doc_prop, "kind", VariantType.INT64, "MarkupContent"),
-                        (string) expect_property (doc_prop, "value", VariantType.STRING, "MarkupContent")
-                    );
-            }
+            if (doc_prop != null)
+                documentation = new MarkupContent.from_variant (doc_prop);
         }
 
         public Variant to_variant () {
@@ -157,15 +150,8 @@ namespace Lsp {
 
             label = (string) expect_property (dict, "label", VariantType.STRING, "SignatureInformation");
 
-            if ((prop = lookup_property (dict, "documentation", VariantType.ANY, "SignatureInformation")) != null) {
-                if (prop.is_of_type (VariantType.STRING))
-                    documentation = new MarkupContent (MarkupKind.PLAINTEXT, (string) prop);
-                else if (prop.is_of_type (VariantType.VARDICT))
-                    documentation = new MarkupContent (
-                        (MarkupKind) (int64) expect_property (prop, "kind", VariantType.INT64, "MarkupContent"),
-                        (string) expect_property (prop, "value", VariantType.STRING, "MarkupContent")
-                    );
-            }
+            if ((prop = lookup_property (dict, "documentation", VariantType.ANY, "SignatureInformation")) != null)
+                documentation = new MarkupContent.from_variant (prop);
 
             if ((prop = lookup_property (dict, "parameters", VariantType.ARRAY, "SignatureInformation")) != null) {
                 ParameterInformation[] params = {};

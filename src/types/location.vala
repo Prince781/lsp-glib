@@ -49,15 +49,18 @@ namespace Lsp {
         }
 
         public Position.from_variant (Variant variant) throws DeserializeError {
-            Variant? prop = null;
-            if ((prop = variant.lookup_value ("line", VariantType.UINT64)) != null)
-                line = (uint64)prop;
-            else
+            if (!variant.is_of_type (VariantType.VARDICT))
+                throw new DeserializeError.INVALID_TYPE ("expected dictionary for Position");
+
+            var prop = variant.lookup_value ("line", null);
+            if (prop == null)
                 throw new DeserializeError.MISSING_PROPERTY ("property `line` not found for Position");
-            if ((prop = variant.lookup_value ("character", VariantType.UINT64)) != null)
-                character = (uint64)prop;
-            else
+            line = parse_uinteger ((!) prop, "line");
+
+            prop = variant.lookup_value ("character", null);
+            if (prop == null)
                 throw new DeserializeError.MISSING_PROPERTY ("property `character` not found for Position");
+            character = parse_uinteger ((!) prop, "character");
         }
 
         public Variant to_variant () {
@@ -65,6 +68,19 @@ namespace Lsp {
             variant.insert_value ("line", line);
             variant.insert_value ("character", character);
             return variant.end ();
+        }
+
+        private static uint64 parse_uinteger (
+            Variant value,
+            string property_name
+        ) throws DeserializeError {
+            if (value.is_of_type (VariantType.UINT64))
+                return (uint64) value;
+            if (value.is_of_type (VariantType.INT64) && (int64) value >= 0)
+                return (uint64) (int64) value;
+            throw new DeserializeError.INVALID_TYPE (
+                "property `%s` on Position must be a non-negative integer",
+                property_name);
         }
     }
 
@@ -127,10 +143,18 @@ namespace Lsp {
             this.range = range;
         }
 
-        public Location.from_variant (Variant variant) throws UriError {
-            var uri = variant.lookup_value ("uri", VariantType.STRING);
-            if (uri != null)
-                this.uri = Uri.parse ((string)uri, UriFlags.NONE);
+        public Location.from_variant (Variant variant) throws UriError, DeserializeError {
+            var uri = (string) expect_property (
+                variant,
+                "uri",
+                VariantType.STRING,
+                "Location");
+            this.uri = Uri.parse (uri, UriFlags.NONE);
+            range = Range.from_variant (expect_property (
+                variant,
+                "range",
+                VariantType.VARDICT,
+                "Location"));
         }
 
         public Variant to_variant () {

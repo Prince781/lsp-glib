@@ -210,6 +210,16 @@ namespace Lsp {
 
             assert_not_reached ();
         }
+
+        public static LanguageId parse_string (string value) {
+            for (int id = (int) UNKNOWN; id <= (int) YAML; id++) {
+                var language_id = (LanguageId) id;
+                if (language_id.to_string () == value)
+                    return language_id;
+            }
+
+            return UNKNOWN;
+        }
     }
 
     /**
@@ -350,10 +360,12 @@ namespace Lsp {
             else
                 throw new DeserializeError.MISSING_PROPERTY ("property `uri` not found for TextDocumentItem");
 
-            if ((prop = dict.lookup_value ("languageId", VariantType.INT64)) != null)
-                this.language_id = (LanguageId) prop;
-            else
-                throw new DeserializeError.MISSING_PROPERTY ("property `languageId` not found for TextDocumentItem");
+            this.language_id = LanguageId.parse_string (
+                (string) expect_property (
+                    dict,
+                    "languageId",
+                    VariantType.STRING,
+                    "TextDocumentItem"));
 
             if ((prop = dict.lookup_value ("version", VariantType.INT64)) != null)
                 this.version = (int64) prop;
@@ -370,7 +382,7 @@ namespace Lsp {
             var dict = new VariantDict ();
 
             dict.insert_value ("uri", uri.to_string ());
-            dict.insert_value ("languageId", language_id);
+            dict.insert_value ("languageId", language_id.to_string ());
             dict.insert_value ("version", version);
             dict.insert_value ("text", text);
 

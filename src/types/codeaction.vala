@@ -352,7 +352,9 @@ namespace Lsp {
 
             kind = CodeActionKind.parse_variant (expect_property (variant, "kind", VariantType.STRING, "LspCodeAction"));
             preferred = (bool) expect_property (variant, "preferred", VariantType.BOOLEAN, "LspCodeAction");
-            disabled_reason = (string?) lookup_property (variant, "disabledReason", VariantType.STRING, "LspCodeAction");
+            var disabled = lookup_property (variant, "disabledReason", VariantType.STRING, "LspCodeAction");
+            if (disabled != null)
+                disabled_reason = (string) disabled;
 
             Diagnostic[] diagnostics = {};
             foreach (var vdiag in lookup_property (variant, "diagnostics", VariantType.ARRAY, "LspCodeAction"))

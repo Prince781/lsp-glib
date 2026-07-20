@@ -99,7 +99,7 @@ public class Lsp.Editor : Jsonrpc.Server {
     private async void handle_call_async (Jsonrpc.Client client, string method, Variant id, Variant parameters) {
         if (exited) {
             try {
-                yield client.reply_error_async (id, Jsonrpc.ClientError.INVALID_REQUEST, "editor is shutting down", cancellable);
+                yield client.reply_error_async (id, ErrorCode.INVALID_REQUEST, "editor is shutting down", cancellable);
             } catch (Error e) {
                 // ignore
             }
@@ -116,13 +116,13 @@ public class Lsp.Editor : Jsonrpc.Server {
                     break;
 
                 default:
-                    yield client.reply_error_async (id, Jsonrpc.ClientError.METHOD_NOT_FOUND, null, cancellable);
+                    yield client.reply_error_async (id, ErrorCode.METHOD_NOT_FOUND, null, cancellable);
                     break;
             }
         } catch (Error e) {
             warning ("handling call failed - %s", e.message);
             try {
-                yield client.reply_error_async (id, Jsonrpc.ClientError.INTERNAL_ERROR, e.message, cancellable);
+                yield client.reply_error_async (id, ErrorCode.INTERNAL_ERROR, e.message, cancellable);
             } catch (Error e2) {
                 // ignore
             }

@@ -35,6 +35,14 @@ namespace Lsp {
             this.href = href;
         }
 
+        public CodeDescription.from_variant (Variant variant) throws DeserializeError {
+            href = (string) expect_property (
+                variant,
+                "href",
+                VariantType.STRING,
+                "CodeDescription");
+        }
+
         public Variant to_variant () {
             var dict = new VariantDict ();
             dict.insert_value ("href", href);
@@ -107,7 +115,7 @@ namespace Lsp {
         }
 
         public DiagnosticRelatedInformation.from_variant (Variant variant) throws UriError, DeserializeError {
-            location = Location.from_variant (expect_property (variant, "location", VariantType.VARIANT, typeof (DiagnosticRelatedInformation).name ()));
+            location = Location.from_variant (expect_property (variant, "location", VariantType.VARDICT, typeof (DiagnosticRelatedInformation).name ()));
             message = (string) expect_property (variant, "message", VariantType.STRING, typeof (DiagnosticRelatedInformation).name ());
         }
 
@@ -206,12 +214,17 @@ namespace Lsp {
         public Diagnostic.from_variant (Variant variant) throws DeserializeError, UriError {
             Variant? prop = null;
 
-            range = Range.from_variant (expect_property (variant, "range", VariantType.VARIANT, "LspDiagnostic"));
+            range = Range.from_variant (expect_property (variant, "range", VariantType.VARDICT, "LspDiagnostic"));
 
-            if ((prop = lookup_property (variant, "severity", VariantType.INT64, "LspDiagnostic")) != null)
-                severity = (DiagnosticSeverity) prop;
+            if ((prop = lookup_property (variant, "severity", VariantType.INT64, "LspDiagnostic")) != null) {
+                var value = (int64) prop;
+                if (value < (int64) DiagnosticSeverity.UNSET ||
+                    value > (int64) DiagnosticSeverity.HINT)
+                    throw new DeserializeError.INVALID_TYPE ("invalid LspDiagnostic.severity");
+                severity = (DiagnosticSeverity) value;
+            }
 
-            if ((prop = lookup_property (variant, "code", VariantType.INT64, "LspDiagnostic")) != null) {
+            if ((prop = variant.lookup_value ("code", null)) != null) {
                 if (prop.is_of_type (VariantType.INT64))
                     code = ((int64) prop).to_string ();
                 else if (prop.is_of_type (VariantType.STRING))
@@ -219,6 +232,12 @@ namespace Lsp {
                 else
                     throw new DeserializeError.INVALID_TYPE ("LspDiagnostic.code must be an int64 or a string");
             }
+
+            if ((prop = lookup_property (variant, "codeDescription", VariantType.VARDICT, "LspDiagnostic")) != null)
+                code_description = new CodeDescription.from_variant (prop);
+
+            if ((prop = lookup_property (variant, "source", VariantType.STRING, "LspDiagnostic")) != null)
+                source = (string) prop;
 
             message = (string) expect_property (variant, "message", VariantType.STRING, "LspDiagnostic");
 
@@ -234,13 +253,15 @@ namespace Lsp {
 
             if ((prop = lookup_property (variant, "relatedInformation", VariantType.ARRAY, "LspDiagnostic")) != null) {
                 DiagnosticRelatedInformation[] related_info = {};
-                foreach (var tag in prop) {
-                    if (!tag.is_of_type (VariantType.INT64))
+                foreach (var related in prop) {
+                    if (!related.is_of_type (VariantType.VARDICT))
                         throw new DeserializeError.INVALID_TYPE ("expected DiagnosticRelatedInformation element in Diagnostic.relatedInformation");
-                    related_info += DiagnosticRelatedInformation.from_variant (tag);
+                    related_info += DiagnosticRelatedInformation.from_variant (related);
                 }
                 related_information = related_info;
             }
+
+            data = variant.lookup_value ("data", null);
         }
 
         public Variant to_variant () {
@@ -248,7 +269,7 @@ namespace Lsp {
 
             dict.insert_value ("range", range.to_variant ());
             if (severity != DiagnosticSeverity.UNSET)
-                dict.insert_value ("severity", severity);
+                dict.insert_value ("severity", new Variant.int64 ((int64) severity));
             if (code != null)
                 dict.insert_value ("code", code);
             if (code_description != null)
@@ -259,14 +280,16 @@ namespace Lsp {
             if (tags != null) {
                 Variant[] tags_list = {};
                 foreach (var tag in tags)
-                    tags_list += tag;
+                    tags_list += new Variant.int64 ((int64) tag);
                 dict.insert_value ("tags", new Variant.array (VariantType.INT64, tags_list));
             }
             if (related_information != null) {
                 Variant[] related_information_list = {};
                 foreach (unowned var related in related_information)
                     related_information_list += related.to_variant ();
-                dict.insert_value ("relatedInformation", related_information_list);
+                dict.insert_value (
+                    "relatedInformation",
+                    new Variant.array (VariantType.VARDICT, related_information_list));
             }
             if (data != null)
                 dict.insert_value ("data", data);

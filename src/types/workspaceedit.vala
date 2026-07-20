@@ -69,7 +69,8 @@ namespace Lsp {
             Variant? prop = null;
             if ((prop = lookup_property (variant, "options", VariantType.VARDICT, "LspCreateFileOptions")) != null)
                 options = Options.from_variant (prop);
-            annotation_id = (string?) lookup_property (variant, "annotationId", VariantType.STRING, "LspCreateFile");
+            if ((prop = lookup_property (variant, "annotationId", VariantType.STRING, "LspCreateFile")) != null)
+                annotation_id = (string) prop;
         }
 
         public override Variant to_variant () {
@@ -131,7 +132,8 @@ namespace Lsp {
             Variant? prop = null;
             if ((prop = lookup_property (variant, "options", VariantType.VARDICT, "LspRenameFileOptions")) != null)
                 options = Options.from_variant (prop);
-            annotation_id = (string?) lookup_property (variant, "annotationId", VariantType.STRING, "LspRenameFile");
+            if ((prop = lookup_property (variant, "annotationId", VariantType.STRING, "LspRenameFile")) != null)
+                annotation_id = (string) prop;
         }
 
         public override Variant to_variant () {
@@ -191,7 +193,8 @@ namespace Lsp {
             Variant? prop = null;
             if ((prop = lookup_property (variant, "options", VariantType.VARDICT, "LspDeleteFileOptions")) != null)
                 options = Options.from_variant (prop);
-            annotation_id = (string?) lookup_property (variant, "annotationId", VariantType.STRING, "LspDeleteFile");
+            if ((prop = lookup_property (variant, "annotationId", VariantType.STRING, "LspDeleteFile")) != null)
+                annotation_id = (string) prop;
         }
 
         public override Variant to_variant () {
@@ -264,14 +267,22 @@ namespace Lsp {
             if (doc_changes != null) {
                 ResourceOperation[] items = {};
                 foreach (var vchange in doc_changes) {
-                    var prop = (string?) lookup_property (vchange, "kind", VariantType.STRING, "LspWorkspaceEdit");
-                    if (prop == null)
+                    var kind_variant = lookup_property (
+                        vchange,
+                        "kind",
+                        VariantType.STRING,
+                        "LspWorkspaceEdit");
+                    if (kind_variant == null) {
                         items += new TextDocumentEdit.from_variant (vchange);
-                    else if (prop == "create")
+                        continue;
+                    }
+
+                    var kind = (string) kind_variant;
+                    if (kind == "create")
                         items += new CreateFile.from_variant (vchange);
-                    else if (prop == "delete")
+                    else if (kind == "delete")
                         items += new DeleteFile.from_variant (vchange);
-                    else if (prop == "rename")
+                    else if (kind == "rename")
                         items += new RenameFile.from_variant (vchange);
                     else
                         throw new DeserializeError.UNEXPECTED_ELEMENT ("unexpected element in documentChanges array");
@@ -301,7 +312,9 @@ namespace Lsp {
                 Variant[] list = {};
                 foreach (var change in document_changes)
                     list += change.to_variant ();
-                variant.insert_value ("documentChanges", list);
+                variant.insert_value (
+                    "documentChanges",
+                    new Variant.array (VariantType.VARDICT, list));
             }
             if (change_annotations != null) {
                 var annotations_dict = new VariantDict ();
