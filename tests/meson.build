@@ -1,3 +1,5 @@
+subdir('support')
 subdir('vala')
 subdir('c')
 subdir('python')
+subdir('js')

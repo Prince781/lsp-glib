@@ -4,35 +4,11 @@ python = import('python').find_installation(
   required: false,
 )
 
-g_ir_scanner = find_program('g-ir-scanner', required: false)
-
-if python.found() and g_ir_compiler.found() and g_ir_scanner.found()
-  gnome = import('gnome')
-  python_test_support = shared_library(
-    'lsp-test-support',
-    [
-      'test-stream-support.c',
-      '../c/test-stream.c',
-    ],
-    dependencies: dependency('gio-2.0'),
-    install: false,
-  )
-  python_test_support_gir = gnome.generate_gir(
-    python_test_support,
-    sources: files('test-stream-support.h'),
-    namespace: 'LspTest',
-    nsversion: '1.0',
-    identifier_prefix: 'LspTest',
-    symbol_prefix: 'lsp_test',
-    includes: ['Gio-2.0'],
-    env: {'GI_SCANNER_DISABLE_CACHE': '1'},
-    install: false,
-  )
-
+if python.found() and is_variable('gi_test_support_gir')
   python_test_env = environment()
   python_test_env.prepend(
     'GI_TYPELIB_PATH',
-    meson.current_build_dir(),
+    meson.project_build_root() / 'tests' / 'support',
   )
   python_test_env.prepend(
     'GI_TYPELIB_PATH',
@@ -40,7 +16,7 @@ if python.found() and g_ir_compiler.found() and g_ir_scanner.found()
   )
   python_test_env.prepend(
     'PATH',
-    meson.current_build_dir(),
+    meson.project_build_root() / 'tests' / 'support',
   )
   python_test_env.prepend(
     'PATH',
@@ -50,7 +26,7 @@ if python.found() and g_ir_compiler.found() and g_ir_scanner.found()
   if host_machine.system() == 'darwin'
     python_test_env.prepend(
       'DYLD_LIBRARY_PATH',
-      meson.current_build_dir(),
+      meson.project_build_root() / 'tests' / 'support',
     )
     python_test_env.prepend(
       'DYLD_LIBRARY_PATH',
@@ -59,7 +35,7 @@ if python.found() and g_ir_compiler.found() and g_ir_scanner.found()
   elif host_machine.system() != 'windows'
     python_test_env.prepend(
       'LD_LIBRARY_PATH',
-      meson.current_build_dir(),
+      meson.project_build_root() / 'tests' / 'support',
     )
     python_test_env.prepend(
       'LD_LIBRARY_PATH',
@@ -97,7 +73,7 @@ if python.found() and g_ir_compiler.found() and g_ir_scanner.found()
     args: files('server.py'),
     depends: [
       lsp_glib_typelib,
-      python_test_support_gir,
+      gi_test_support_gir,
     ],
     env: python_test_env,
     suite: 'python',

@@ -6,6 +6,7 @@ conf.set('PROJECT_VERSION', meson.project_version())
 conf.set('API_VERSION', API_VERSION)
 
 sources = [version_file] + files([
+  'types/boxed-types.c',
   'io/jsonrpc-reply.c',
   'io/client.vala',
   'io/editor.vala',
@@ -54,11 +55,11 @@ liblsp_glib = library('lsp-glib-' + API_VERSION,
     true,
     get_option('includedir') / 'lsp-glib-' + API_VERSION,
     vapidir,
-    g_ir_compiler.found()
+    false
   ]
 )
 
-lsp_glib_gir = meson.current_build_dir() / 'Lsp-' + API_VERSION + '.gir'
+subdir('gir')
 
 install_data('lsp-glib.deps',
              install_dir: join_paths(get_option('prefix'), get_option('datadir'), 'vala', 'vapi'))
@@ -69,7 +70,7 @@ if g_ir_compiler.found()
       g_ir_compiler,
       '--shared-library', 'liblsp-glib-@0@.so'.format (API_VERSION),
       '--output', '@OUTPUT@',
-      meson.current_build_dir() / 'Lsp-' + API_VERSION + '.gir'
+      lsp_glib_gir
     ],
     output: 'Lsp-' + API_VERSION + '.typelib',
     depends: liblsp_glib,

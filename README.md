@@ -122,4 +122,5 @@ language:
 meson test -C build --suite vala
 meson test -C build --suite c
 meson test -C build --suite python
+meson test -C build --suite js
 ```

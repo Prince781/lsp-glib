@@ -25,7 +25,22 @@ namespace Lsp {
      * @since 3.16.0
      */
     [Compact (opaque = true)]
+    [CCode (ref_function = "lsp_code_description_ref", unref_function = "lsp_code_description_unref")]
     public class CodeDescription {
+        private int ref_count = 1;
+
+        public unowned CodeDescription ref () {
+            AtomicInt.add (ref this.ref_count, 1);
+            return this;
+        }
+
+        public void unref () {
+            if (AtomicInt.dec_and_test (ref this.ref_count))
+                this.free ();
+        }
+
+        private extern void free ();
+
         /**
          * An URI to open with more information about the diagnostic error.
          */
