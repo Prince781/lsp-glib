@@ -1,0 +1,44 @@
+name: Vala formatting
+
+on:
+  pull_request:
+    paths:
+      - "**/*.vala"
+      - ".uncrustify.cfg"
+      - ".github/workflows/vala-format.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  uncrustify:
+    runs-on: ubuntu-latest
+    container: fedora:44
+
+    steps:
+      - name: Install dependencies
+        run: dnf install -y git uncrustify
+
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Validate configuration
+        run: uncrustify -c .uncrustify.cfg --find_deprecated
+
+      - name: Check changed Vala files
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        shell: bash
+        run: |
+          mapfile -d '' vala_files < <(
+              git diff --name-only --diff-filter=ACMR -z "$BASE_SHA" HEAD -- '*.vala'
+          )
+
+          if ((${#vala_files[@]} == 0)); then
+              exit 0
+          fi
+
+          uncrustify -q -c .uncrustify.cfg -l VALA --check "${vala_files[@]}"

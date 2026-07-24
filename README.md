@@ -109,6 +109,19 @@ Design ideas:
 
 - [ ] `telemetry/event`
 
+### Workflow
+
+Install Uncrustify and enable the tracked Git hooks for this checkout:
+
+```sh
+git config core.hooksPath .githooks
+```
+
+The pre-commit hook checks staged Vala files against `.uncrustify.cfg`. It
+reports files that need formatting without modifying the working tree or the
+index. GitHub Actions runs the same check for Vala files changed by each pull
+request.
+
 ### Docs
 
 Run `meson build && meson compile -C build`. Docs will be located in `build/src/Lsp-3.0`.
